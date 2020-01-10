@@ -29,7 +29,7 @@ func main() {
 	http.HandleFunc("/", index)
 	http.HandleFunc("/upload", upload)
 	http.HandleFunc("/access/", access)
-	fmt.Println(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +49,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	// show current db entries
 	list := "<br>"
 	for key := range d.Keys(nil) {
-		list += "<a href='http://localhost:8080/access/" + key + "/'>" + key + "</a><br>"
+		list += "<a href='/access/" + key + "/'>" + key + "</a><br>"
 	}
 	w.Write([]byte(list))
 
@@ -74,42 +74,47 @@ func access(w http.ResponseWriter, r *http.Request) {
 func upload(w http.ResponseWriter, r *http.Request) {
 	// receive file
 	file, handler, err := r.FormFile("myFile")
+	defer file.Close()
 	if err != nil {
-		fmt.Println("Error Retrieving the File")
-		fmt.Println(err)
+		handleHTTPErr(w, "Error retrieving the file")
 		return
 	}
-	defer file.Close()
 	fmt.Printf("Uploaded File: %+v\tFile Size: %+v\tMIME: %+v\n", handler.Filename, handler.Size, handler.Header)
 
 	// create a temp file
 	tempFile, err := ioutil.TempFile("", "upload-*.png")
+	defer tempFile.Close()
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
-	defer tempFile.Close()
 
 	// save to temp file
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
-		fmt.Println(err)
+		handleHTTPErr(w, fmt.Sprintf("Error reading uploaded file: %v", err))
+		return
 	}
 	tempFile.Write(fileBytes)
 	fmt.Println(tempFile.Name())
 	defer os.Remove(tempFile.Name())
 
 	// enhance!
-	enhanced, err := enhance(tempFile.Name())
-	if err != nil {
-		fmt.Println(err)
-	}
+	name := tempFile.Name()
+	enhanced, err := enhance(name)
 	defer os.Remove(enhanced)
+	if err != nil {
+		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s: %v", name, err))
+		return
+	}
 
 	// serve output
 	output, err := os.Open(enhanced)
 	if err != nil {
-		fmt.Println(err)
+		handleHTTPErr(w, fmt.Sprintf("Error opening %s: %v", enhanced, err))
+		return
 	}
+
 	fileBytes, err = ioutil.ReadAll(output)
 	w.Header().Set("Content-Type", "image/png")
 	w.Write(fileBytes)
@@ -138,4 +143,10 @@ func enhance(file string) (string, error) {
 	return outputFile.Name(), nil
 
 	// TODO: rewrite in go instead of relying on curl
+}
+
+func handleHTTPErr(w http.ResponseWriter, errMsg string) {
+	fmt.Println(errMsg)
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte(errMsg))
 }
