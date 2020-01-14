@@ -1,13 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -85,6 +87,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	// create a temp file
 	tempFile, err := ioutil.TempFile("", "upload-*.png")
 	defer tempFile.Close()
+	defer os.Remove(tempFile.Name())
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -96,58 +99,78 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		handleHTTPErr(w, fmt.Sprintf("Error reading uploaded file: %v", err))
 		return
 	}
+	imageType := http.DetectContentType(fileBytes)
+	if imageType != "image/png" {
+		// https://www.bennadel.com/blog/2434-http-status-codes-for-invalid-data-400-vs-422.htm
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		w.Write([]byte(fmt.Sprintf("Invalid image type: expected \"image/png\", got: %s", imageType)))
+		return
+	}
 	tempFile.Write(fileBytes)
 	fmt.Println(tempFile.Name())
-	defer os.Remove(tempFile.Name())
 
 	// enhance!
 	name := tempFile.Name()
 	enhanced, err := enhance(name)
-	defer os.Remove(enhanced)
 	if err != nil {
 		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s: %v", name, err))
 		return
 	}
 
 	// serve output
-	output, err := os.Open(enhanced)
-	if err != nil {
-		handleHTTPErr(w, fmt.Sprintf("Error opening %s: %v", enhanced, err))
-		return
-	}
-
-	fileBytes, err = ioutil.ReadAll(output)
 	w.Header().Set("Content-Type", "image/png")
-	w.Write(fileBytes)
+	w.Write(enhanced)
 
 	// save to db
 	encoded := base64.StdEncoding.EncodeToString(fileBytes)
 	d.Write(time.Now().Format("2006-01-02-15-04-05"), []byte(encoded))
-	output.Close()
-
-	// TODO: do all of this in memory instead of writing temp files left and right
 }
 
-func enhance(file string) (string, error) {
-	inputFile := fmt.Sprintf("image=@%s;type=image/png", file)
-	outputFile, err := ioutil.TempFile("", "enhanced-*.png")
-	if err != nil {
-		return "", err
-	}
-	outputFile.Close()
-	// using curl because I forgot how to do this in native go
-	cmdOutput, err := exec.Command("curl", "-X", "POST", "http://localhost:5000/model/predict", "-H", "accept: application/json", "-H", "Content-Type: multipart/form-data", "-F", inputFile, "--output", outputFile.Name(), "-s").CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-	fmt.Printf("curl output: %s\n", cmdOutput)
-	return outputFile.Name(), nil
-
-	// TODO: rewrite in go instead of relying on curl
+func enhance(file string) ([]byte, error) {
+	return sendPostRequest("http://localhost:5000/model/predict", file, "image/png")
 }
 
 func handleHTTPErr(w http.ResponseWriter, errMsg string) {
 	fmt.Println(errMsg)
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte(errMsg))
+}
+
+func sendPostRequest(url string, filename string, filetype string) ([]byte, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("image", filepath.Base(file.Name()))
+	if err != nil {
+		return nil, err
+	}
+
+	io.Copy(part, file)
+	writer.Close()
+	request, err := http.NewRequest("POST", url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	request.Header.Add("Content-Type", writer.FormDataContentType())
+	request.Header.Add("accept", "application/json")
+	client := &http.Client{}
+
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	content, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return content, nil
 }
