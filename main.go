@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"mime/multipart"
@@ -47,14 +46,22 @@ func index(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Write(file)
+	_, err = w.Write(file)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	// show current db entries
 	list := "<br>"
 	for key := range d.Keys(nil) {
 		list += "<a href='/access/" + key + "/'>" + key + "</a><br>"
 	}
-	w.Write([]byte(list))
+	_, err = w.Write([]byte(list))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	// TODO: use proper templating? maybe?
 }
@@ -64,34 +71,30 @@ func access(w http.ResponseWriter, r *http.Request) {
 	image, err := d.Read(key)
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 	decoded, err := base64.StdEncoding.DecodeString(string(image))
 	if err != nil {
 		fmt.Println(err)
-	}
-	w.Header().Set("Content-Type", "image/png")
-	w.Write(decoded)
-
-}
-
-func upload(w http.ResponseWriter, r *http.Request) {
-	// receive file
-	file, handler, err := r.FormFile("myFile")
-	defer file.Close()
-	if err != nil {
-		handleHTTPErr(w, "Error retrieving the file")
 		return
 	}
-	fmt.Printf("Uploaded File: %+v\tFile Size: %+v\tMIME: %+v\n", handler.Filename, handler.Size, handler.Header)
-
-	// create a temp file
-	tempFile, err := ioutil.TempFile("", "upload-*.png")
-	defer tempFile.Close()
-	defer os.Remove(tempFile.Name())
+	w.Header().Set("Content-Type", "image/png")
+	_, err = w.Write(decoded)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+}
+
+func upload(w http.ResponseWriter, r *http.Request) {
+	// receive file
+	file, header, err := r.FormFile("myFile")
+	if err != nil {
+		handleHTTPErr(w, "Error retrieving the file")
+		return
+	}
+	defer file.Close()
+	fmt.Printf("Uploaded File: %+v\tFile Size: %+v\tMIME: %+v\n", header.Filename, header.Size, header.Header)
 
 	// save to temp file
 	fileBytes, err := ioutil.ReadAll(file)
@@ -102,16 +105,15 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	imageType := http.DetectContentType(fileBytes)
 	if imageType != "image/png" {
 		// https://www.bennadel.com/blog/2434-http-status-codes-for-invalid-data-400-vs-422.htm
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		w.Write([]byte(fmt.Sprintf("Invalid image type: expected \"image/png\", got: %s", imageType)))
+		http.Error(w, fmt.Sprintf("Invalid image type: expected \"image/png\", got: %s", imageType), http.StatusUnprocessableEntity)
 		return
 	}
-	tempFile.Write(fileBytes)
-	fmt.Println(tempFile.Name())
+
+	filenameWithoutExtension := strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename))
+	name := fmt.Sprintf("%s-%s.png", filenameWithoutExtension, time.Now().Format("2006-01-02-15-04-05"))
 
 	// enhance!
-	name := tempFile.Name()
-	enhanced, err := enhance(name)
+	enhanced, err := enhance(name, fileBytes)
 	if err != nil {
 		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s: %v", name, err))
 		return
@@ -119,39 +121,48 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 	// serve output
 	w.Header().Set("Content-Type", "image/png")
-	w.Write(enhanced)
+	_, err = w.Write(enhanced)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	// save to db
 	encoded := base64.StdEncoding.EncodeToString(fileBytes)
-	d.Write(time.Now().Format("2006-01-02-15-04-05"), []byte(encoded))
+	err = d.Write(name, []byte(encoded))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
 
-func enhance(file string) ([]byte, error) {
-	return sendPostRequest("http://localhost:5000/model/predict", file, "image/png")
+func enhance(name string, image []byte) ([]byte, error) {
+	return sendPostRequest("http://localhost:5000/model/predict", name, image)
 }
 
 func handleHTTPErr(w http.ResponseWriter, errMsg string) {
 	fmt.Println(errMsg)
+	http.Error(w, errMsg, http.StatusInternalServerError)
 	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(errMsg))
 }
 
-func sendPostRequest(url string, filename string, filetype string) ([]byte, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
+func sendPostRequest(url string, name string, image []byte) ([]byte, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("image", filepath.Base(file.Name()))
+	part, err := writer.CreateFormFile("image", name)
 	if err != nil {
 		return nil, err
 	}
 
-	io.Copy(part, file)
-	writer.Close()
+	_, err = part.Write(image)
+	if err != nil {
+		return nil, err
+	}
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
 	request, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err
