@@ -1,0 +1,16 @@
+local_resource(
+  'frontend',
+  serve_cmd='go run frontend/main.go',
+  deps=['frontend', 'storage/api', 'storage/client'],
+)
+
+local_resource(
+  'storage',
+  serve_cmd='go run storage/main.go',
+  deps=['storage'],
+)
+
+local_resource(
+  'max-image-resolution-enhancer',
+  serve_cmd='docker run -p 5000:5000 codait/max-image-resolution-enhancer'
+)
