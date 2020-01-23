@@ -1,0 +1,15 @@
+docker_build("frontend", ".", dockerfile="frontend.dockerfile")
+docker_build("storage", ".", dockerfile="storage.dockerfile")
+
+k8s_yaml(
+  [
+    'frontend/k8s.yaml',
+    'storage/k8s.yaml',
+    'max-image-resolution-enhancer/k8s.yaml'
+  ]
+)
+
+local_resource(
+  'max-image-resolution-enhancer',
+  serve_cmd='docker run -p 5000:5000 codait/max-image-resolution-enhancer'
+)

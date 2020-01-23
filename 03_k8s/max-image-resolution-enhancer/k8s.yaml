@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: max-image-resolution-enhancer
+  labels:
+    app: max-image-resolution-enhancer
+spec:
+  selector:
+    matchLabels:
+      app: max-image-resolution-enhancer
+  template:
+    metadata:
+      labels:
+        app: max-image-resolution-enhance
+        tier: backend
+    spec:
+      containers:
+      - name: max-image-resolution-enhancer
+        image: codait/max-image-resolution-enhancer
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            cpu: "10m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: max-image-resolution-enhancer
+  labels:
+    app: max-image-resolution-enhancer
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+  selector:
+    app: max-image-resolution-enhancer
