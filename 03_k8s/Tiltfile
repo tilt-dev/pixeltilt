@@ -1,0 +1,12 @@
+docker_build("frontend", ".", dockerfile="frontend.dockerfile")
+docker_build("storage", ".", dockerfile="storage.dockerfile")
+
+k8s_yaml(
+  [
+    'frontend/k8s.yaml',
+    'storage/k8s.yaml',
+    'max-image-resolution-enhancer/k8s.yaml'
+  ]
+)
+
+k8s_resource("frontend", port_forwards="8080")
