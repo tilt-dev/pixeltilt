@@ -21,7 +21,7 @@ type RenderReply struct {
 
 type Renderer func(req RenderRequest) (RenderReply, error)
 
-func HttpRenderHandler(renderer Renderer) func(req http.Request, w http.ResponseWriter) {
+func HttpRenderHandler(renderer Renderer) func(req *http.Request, w http.ResponseWriter) {
 	return func(req http.Request, w http.ResponseWriter) {
 		rr, err := ReadRequest(req)
 		if err != nil {
