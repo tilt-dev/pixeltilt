@@ -21,8 +21,8 @@ type RenderReply struct {
 
 type Renderer func(req RenderRequest) (RenderReply, error)
 
-func HttpRenderHandler(renderer Renderer) func(req http.Request, w http.ResponseWriter) {
-	return func(req http.Request, w http.ResponseWriter) {
+func HttpRenderHandler(renderer Renderer) func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
 		rr, err := ReadRequest(req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -42,7 +42,7 @@ func HttpRenderHandler(renderer Renderer) func(req http.Request, w http.Response
 	}
 }
 
-func ReadRequest(req http.Request) (RenderRequest, error) {
+func ReadRequest(req *http.Request) (RenderRequest, error) {
 	d := json.NewDecoder(req.Body)
 	d.DisallowUnknownFields()
 	var rr RenderRequest
