@@ -1,0 +1,24 @@
+docker_build("frontend", ".", dockerfile="frontend.dockerfile",
+  live_update=[
+    sync('./frontend', '/app/frontend'),
+    run('GO111MODULE=on go build frontend/main.go'),
+    restart_container(),
+  ]
+)
+docker_build("storage", ".", dockerfile="storage.dockerfile",
+  live_update=[
+    sync('./storage', '/app/storage'),
+    run('GO111MODULE=on go build storage/main.go'),
+    restart_container(),
+  ]
+)
+
+k8s_yaml(
+  [
+    'frontend/k8s.yaml',
+    'storage/k8s.yaml',
+    'max-image-resolution-enhancer/k8s.yaml'
+  ]
+)
+
+k8s_resource("frontend", port_forwards="8080")
