@@ -83,7 +83,7 @@ func render(req api.RenderRequest) (api.RenderReply, error) {
 		return api.RenderReply{}, errors.Wrap(err, "decoding image")
 	}
 
-	merged := merge(imageToRGBA(modifiedPic), output)
+	merged := merge(modifiedPic, output)
 	var buf bytes.Buffer
 	err = png.Encode(&buf, merged)
 	if err != nil {
@@ -180,14 +180,9 @@ func sendPostRequest(url string, name string, image []byte) ([]byte, error) {
 	return content, nil
 }
 
-func merge(img1, img2 *image.RGBA) *image.RGBA {
+func merge(img1, img2 image.Image) *image.RGBA {
 	img3 := image.NewRGBA(img1.Bounds())
 	draw.Draw(img3, img3.Bounds(), img1, image.ZP, draw.Src)
 	draw.Draw(img3, img3.Bounds(), img2, image.ZP, draw.Over)
 	return img3
-}
-
-func imageToRGBA(i image.Image) *image.RGBA {
-	picSize := i.Bounds().Size()
-	return image.NewRGBA(image.Rect(0, 0, picSize.X, picSize.Y))
 }
