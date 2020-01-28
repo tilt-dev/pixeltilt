@@ -71,19 +71,17 @@ func render(req api.RenderRequest) (api.RenderReply, error) {
 		return api.RenderReply{}, errors.Wrap(err, "decoding image")
 	}
 
-	output, err := rectangler(data, input.Bounds().Size())
-	_ = output
+	overlayImg, err := rectangler(data, input.Bounds().Size())
 	if err != nil {
 		return api.RenderReply{}, errors.Wrap(err, "rectangling")
 	}
 
-	modifiedPic, err := png.Decode(bytes.NewReader(req.Image))
-	_ = modifiedPic
+	originalImage, err := png.Decode(bytes.NewReader(req.Image))
 	if err != nil {
 		return api.RenderReply{}, errors.Wrap(err, "decoding image")
 	}
 
-	merged := merge(modifiedPic, output)
+	merged := merge(originalImage, overlayImg)
 	var buf bytes.Buffer
 	err = png.Encode(&buf, merged)
 	if err != nil {
@@ -94,7 +92,7 @@ func render(req api.RenderRequest) (api.RenderReply, error) {
 }
 
 // type data struct {
-// 	Status      string `json:"status"`
+// 	Status      string `json:"status"e`
 // 	Predictions []struct {
 // 		LabelID      string `json:"label_id"`
 // 		Label        string `json:"label"`
@@ -110,7 +108,7 @@ func rectangler(data data, pt image.Point) (*image.RGBA, error) {
 	pic.Clear()
 	w, h := float64(pt.X), float64(pt.Y)
 
-	fontfile, err := ioutil.ReadFile("render/Inconsolata-Bold.ttf")
+	fontfile, err := ioutil.ReadFile("rectangler/Inconsolata-Bold.ttf")
 	if err != nil {
 		return nil, err
 	}
