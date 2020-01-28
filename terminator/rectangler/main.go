@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/draw"
 	"image/png"
 	"io/ioutil"
 	"log"
@@ -31,7 +32,7 @@ type data struct {
 
 func main() {
 	fmt.Println("\nStarting rectangler...")
-	port := "80"
+	port := "8085"
 	if len(os.Args) > 1 {
 		port = os.Args[1]
 	}
@@ -53,8 +54,8 @@ func HandleWithNoSubpath(path string, f func(http.ResponseWriter, *http.Request)
 }
 
 func render(req api.RenderRequest) (api.RenderReply, error) {
-	// TODO(dmiller): what should the filename be here?
-	detected, err := sendPostRequest("http://max-object-detector:5000/model/predict?threshold=0.7", "image", req.Image)
+	// Run detection on original image
+	detected, err := sendPostRequest("http://max-object-detector:5000/model/predict?threshold=0.7", "image", req.OriginalImage)
 	if err != nil {
 		return api.RenderReply{}, errors.Wrap(err, "max-object-detector")
 	}
@@ -70,13 +71,19 @@ func render(req api.RenderRequest) (api.RenderReply, error) {
 		return api.RenderReply{}, errors.Wrap(err, "decoding image")
 	}
 
-	output, err := rectangler(data, input.Bounds().Size())
+	overlayImg, err := rectangler(data, input.Bounds().Size())
 	if err != nil {
 		return api.RenderReply{}, errors.Wrap(err, "rectangling")
 	}
 
+	originalImage, err := png.Decode(bytes.NewReader(req.Image))
+	if err != nil {
+		return api.RenderReply{}, errors.Wrap(err, "decoding image")
+	}
+
+	merged := merge(originalImage, overlayImg)
 	var buf bytes.Buffer
-	err = png.Encode(&buf, output)
+	err = png.Encode(&buf, merged)
 	if err != nil {
 		return api.RenderReply{}, errors.Wrap(err, "encoding image")
 	}
@@ -85,7 +92,7 @@ func render(req api.RenderRequest) (api.RenderReply, error) {
 }
 
 // type data struct {
-// 	Status      string `json:"status"`
+// 	Status      string `json:"status"e`
 // 	Predictions []struct {
 // 		LabelID      string `json:"label_id"`
 // 		Label        string `json:"label"`
@@ -101,7 +108,7 @@ func rectangler(data data, pt image.Point) (*image.RGBA, error) {
 	pic.Clear()
 	w, h := float64(pt.X), float64(pt.Y)
 
-	fontfile, err := ioutil.ReadFile("render/Inconsolata-Bold.ttf")
+	fontfile, err := ioutil.ReadFile("rectangler/Inconsolata-Bold.ttf")
 	if err != nil {
 		return nil, err
 	}
@@ -169,4 +176,11 @@ func sendPostRequest(url string, name string, image []byte) ([]byte, error) {
 	}
 
 	return content, nil
+}
+
+func merge(img1, img2 image.Image) *image.RGBA {
+	img3 := image.NewRGBA(img1.Bounds())
+	draw.Draw(img3, img3.Bounds(), img1, image.ZP, draw.Src)
+	draw.Draw(img3, img3.Bounds(), img2, image.ZP, draw.Over)
+	return img3
 }

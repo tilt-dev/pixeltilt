@@ -5,7 +5,6 @@ shared_deps = [
 
 docker_build("frontend", ".", dockerfile="frontend.dockerfile", only=['frontend', 'storage/client', 'storage/api', 'render/api'] + shared_deps)
 docker_build("storage", ".", dockerfile="storage.dockerfile", only=['storage'] + shared_deps)
-docker_build("render", ".", dockerfile="render.dockerfile", only=['render'] + shared_deps)
 docker_build("glitch", ".", dockerfile="glitch.dockerfile",
   only=['glitch', 'render/api'] + shared_deps,
   live_update=[
@@ -15,14 +14,13 @@ docker_build("glitch", ".", dockerfile="glitch.dockerfile",
     restart_container(),
   ])
 docker_build("rectangler", ".", dockerfile="rectangler.dockerfile", only=['rectangler', 'render/api'] + shared_deps)
-docker_build("red", ".", dockerfile="red.dockerfile")
+docker_build("red", ".", dockerfile="red.dockerfile", only=['red', 'render/api'] + shared_deps)
 
 k8s_yaml(
   [
     'frontend/k8s.yaml',
     'storage/k8s.yaml',
     'max-object-detector/k8s.yaml',
-    'render/k8s.yaml',
     'glitch/k8s.yaml',
     'rectangler/k8s.yaml',
     'red/k8s.yaml',

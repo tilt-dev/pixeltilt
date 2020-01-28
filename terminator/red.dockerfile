@@ -8,8 +8,6 @@ COPY go.mod go.sum ./
 
 RUN go mod download
 
-COPY frontend frontend
-COPY storage storage
 COPY render render
 COPY red red
 

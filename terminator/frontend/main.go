@@ -113,14 +113,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Invalid image type: expected \"image/png\", got: %s", imageType), http.StatusUnprocessableEntity)
 		return
 	}
-
-	// enhance!
-	detected, err := sendPostRequest("http://max-object-detector:5000/model/predict?threshold=0.7", header.Filename, fileBytes)
-	if err != nil {
-		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s: %v", header.Filename, err))
-		return
-	}
-	fmt.Println(string(detected))
+	originalFileBytes := fileBytes
 
 	resp, err := api.PostRequest(api.RenderRequest{Image: fileBytes}, "http://glitch")
 	if err != nil {
@@ -129,27 +122,30 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 	fileBytes = resp.Image
 
-	_, err = sendPostRequest("http://render/", "data", detected)
+	resp, err = api.PostRequest(api.RenderRequest{Image: fileBytes}, "http://red")
 	if err != nil {
-		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s: %v", header.Filename, err))
+		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s with red: %v", header.Filename, err))
 		return
 	}
-	rendered, err := sendPostRequest("http://render/", "pic", fileBytes)
+	fileBytes = resp.Image
+
+	resp, err = api.PostRequest(api.RenderRequest{Image: fileBytes, OriginalImage: originalFileBytes}, "http://rectangler")
 	if err != nil {
-		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s: %v", header.Filename, err))
+		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s with rectangler: %v", header.Filename, err))
 		return
 	}
+	fileBytes = resp.Image
 
 	// serve output
 	w.Header().Set("Content-Type", "image/png")
-	_, err = w.Write(rendered)
+	_, err = w.Write(fileBytes)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// save to db
-	encoded := base64.StdEncoding.EncodeToString(rendered)
+	encoded := base64.StdEncoding.EncodeToString(fileBytes)
 	err = storage.Write(header.Filename, []byte(encoded))
 	if err != nil {
 		fmt.Println(err)
@@ -160,7 +156,6 @@ func upload(w http.ResponseWriter, r *http.Request) {
 func handleHTTPErr(w http.ResponseWriter, errMsg string) {
 	fmt.Println(errMsg)
 	http.Error(w, errMsg, http.StatusInternalServerError)
-	w.WriteHeader(http.StatusInternalServerError)
 }
 
 func sendPostRequest(url string, name string, image []byte) ([]byte, error) {

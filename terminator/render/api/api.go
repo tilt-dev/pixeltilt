@@ -13,6 +13,8 @@ import (
 
 type RenderRequest struct {
 	Image []byte
+	// OriginalImage is optional
+	OriginalImage []byte
 }
 
 type RenderReply struct {
