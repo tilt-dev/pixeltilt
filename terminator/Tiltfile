@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 shared_deps = [
   'go.mod',
   'go.sum',
