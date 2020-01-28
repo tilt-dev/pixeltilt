@@ -1,14 +1,29 @@
-docker_build("frontend", ".", dockerfile="frontend.dockerfile")
-docker_build("storage", ".", dockerfile="storage.dockerfile")
-docker_build("render", ".", dockerfile="render.dockerfile")
+shared_deps = [
+  'go.mod',
+  'go.sum',
+]
+
+docker_build("frontend", ".", dockerfile="frontend.dockerfile", only=['frontend', 'storage/client', 'storage/api', 'render/api'] + shared_deps)
+docker_build("storage", ".", dockerfile="storage.dockerfile", only=['storage'] + shared_deps)
+docker_build("render", ".", dockerfile="render.dockerfile", only=['render'] + shared_deps)
+docker_build("glitch", ".", dockerfile="glitch.dockerfile",
+  only=['glitch', 'render/api'] + shared_deps,
+  live_update=[
+    sync('glitch', '/app/glitch'),
+    sync('render/api', '/app/render/api'),
+    run('go build glitch/main.go'),
+    restart_container(),
+  ])
 
 k8s_yaml(
   [
     'frontend/k8s.yaml',
     'storage/k8s.yaml',
     'max-object-detector/k8s.yaml',
-    'render/k8s.yaml'
+    'render/k8s.yaml',
+    'glitch/k8s.yaml',
   ]
 )
 
 k8s_resource("frontend", port_forwards="8080")
+k8s_resource("glitch", port_forwards="8085")

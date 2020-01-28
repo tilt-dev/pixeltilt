@@ -21,8 +21,8 @@ type RenderReply struct {
 
 type Renderer func(req RenderRequest) (RenderReply, error)
 
-func HttpRenderHandler(renderer Renderer) func(req http.Request, w http.ResponseWriter) {
-	return func(req http.Request, w http.ResponseWriter) {
+func HttpRenderHandler(renderer Renderer) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
 		rr, err := ReadRequest(req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -42,7 +42,7 @@ func HttpRenderHandler(renderer Renderer) func(req http.Request, w http.Response
 	}
 }
 
-func ReadRequest(req http.Request) (RenderRequest, error) {
+func ReadRequest(req *http.Request) (RenderRequest, error) {
 	d := json.NewDecoder(req.Body)
 	d.DisallowUnknownFields()
 	var rr RenderRequest
@@ -74,8 +74,13 @@ func PostRequest(req RenderRequest, url string) (RenderReply, error) {
 		return RenderReply{}, fmt.Errorf("post request returned status %s: %s", resp.Status, string(body))
 	}
 
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return RenderReply{}, err
+	}
+
 	var reply RenderReply
-	d := json.NewDecoder(resp.Body)
+	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()
 	err = d.Decode(&reply)
 	return reply, errors.Wrap(err, "decoding reply")

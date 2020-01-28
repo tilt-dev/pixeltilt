@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/windmilleng/enhance/render/api"
+
 	"github.com/windmilleng/enhance/storage/client"
 )
 
@@ -25,7 +27,7 @@ func main() {
 	}
 
 	var err error
-	storage, err = client.NewStorageClient("http://storage:8081")
+	storage, err = client.NewStorageClient("http://storage")
 	if err != nil {
 		log.Fatalf("initializing storage client: %v", err)
 	}
@@ -119,6 +121,13 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Println(string(detected))
+
+	resp, err := api.PostRequest(api.RenderRequest{Image: fileBytes}, "http://glitch")
+	if err != nil {
+		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s with glitch: %v", header.Filename, err))
+		return
+	}
+	fileBytes = resp.Image
 
 	_, err = sendPostRequest("http://render/", "data", detected)
 	if err != nil {

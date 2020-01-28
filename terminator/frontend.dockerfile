@@ -10,6 +10,7 @@ RUN go mod download
 
 COPY frontend frontend
 COPY storage storage
+COPY render/api render/api
 
 RUN GO111MODULE=on go build frontend/main.go
 
