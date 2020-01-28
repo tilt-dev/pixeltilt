@@ -8,10 +8,11 @@ COPY go.mod go.sum ./
 
 RUN go mod download
 
-COPY render render
+COPY render/api render/api
+COPY glitch glitch
 
-RUN GO111MODULE=on go build render/main.go
+RUN GO111MODULE=on go build glitch/main.go
 
-EXPOSE 8084
+EXPOSE 8085
 
 CMD ["./main"]

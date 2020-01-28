@@ -31,7 +31,7 @@ metadata:
     app: storage
 spec:
   ports:
-    - port: 81
+    - port: 80
       targetPort: 8081
       protocol: TCP
   selector:

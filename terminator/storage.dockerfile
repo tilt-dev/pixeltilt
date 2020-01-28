@@ -8,7 +8,6 @@ COPY go.mod go.sum ./
 
 RUN go mod download
 
-COPY frontend frontend
 COPY storage storage
 
 RUN GO111MODULE=on go build storage/main.go
