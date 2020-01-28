@@ -20,8 +20,6 @@ import (
 	"github.com/golang/freetype/truetype"
 )
 
-var jsonInput = []byte(`{"status":"ok","predictions":[{"label_id":"5","label":"spaceship","probability":0.993535578250885,"detection_box":[0.3047112226486206,0.1421125829219818,0.7982025146484375,0.907085657119751]}]}`)
-
 type data struct {
 	Status      string `json:"status"`
 	Predictions []struct {

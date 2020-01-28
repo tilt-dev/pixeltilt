@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 shared_deps = [
   'go.mod',
   'go.sum',
@@ -14,6 +15,7 @@ docker_build("glitch", ".", dockerfile="glitch.dockerfile",
     run('go build glitch/main.go'),
     restart_container(),
   ])
+docker_build("red", ".", dockerfile="red.dockerfile")
 
 k8s_yaml(
   [
@@ -22,8 +24,10 @@ k8s_yaml(
     'max-object-detector/k8s.yaml',
     'render/k8s.yaml',
     'glitch/k8s.yaml',
+    'red/k8s.yaml',
   ]
 )
 
 k8s_resource("frontend", port_forwards="8080")
 k8s_resource("glitch", port_forwards="8085")
+k8s_resource("red", port_forwards="8086")
