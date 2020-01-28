@@ -74,13 +74,8 @@ func PostRequest(req RenderRequest, url string) (RenderReply, error) {
 		return RenderReply{}, fmt.Errorf("post request returned status %s: %s", resp.Status, string(body))
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return RenderReply{}, err
-	}
-
 	var reply RenderReply
-	d := json.NewDecoder(bytes.NewReader(b))
+	d := json.NewDecoder(resp.Body)
 	d.DisallowUnknownFields()
 	err = d.Decode(&reply)
 	return reply, errors.Wrap(err, "decoding reply")
