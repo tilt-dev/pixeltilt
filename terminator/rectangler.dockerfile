@@ -9,6 +9,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY render/api render/api
+COPY render/Inconsolata-Bold.ttf render/Inconsolata-Bold.ttf
 COPY rectangler rectangler
 
 RUN GO111MODULE=on go build rectangler/main.go
