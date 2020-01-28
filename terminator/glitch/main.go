@@ -15,6 +15,8 @@ import (
 	"github.com/windmilleng/enhance/render/api"
 )
 
+// syntax described here: https://github.com/sug0/go-glitch/blob/master/res/cool.txt
+// various equations here: https://github.com/sug0/go-glitch/blob/master/res/cool.txt
 var glitchExprStr = "b ^ (r | (s : (x # B)))"
 var glitchExpr *glitch.Expression
 
