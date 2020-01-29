@@ -41,7 +41,7 @@ func main() {
 
 func index(w http.ResponseWriter, r *http.Request) {
 	// show index.html
-	absPath, err := filepath.Abs("./frontend/index.html")
+	absPath, err := filepath.Abs("./muxer/index.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

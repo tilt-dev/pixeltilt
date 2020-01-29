@@ -8,11 +8,11 @@ COPY go.mod go.sum ./
 
 RUN go mod download
 
-COPY frontend frontend
+COPY muxer muxer
 COPY storage storage
 COPY render/api render/api
 
-RUN GO111MODULE=on go build frontend/main.go
+RUN GO111MODULE=on go build muxer/main.go
 
 EXPOSE 8080
 
