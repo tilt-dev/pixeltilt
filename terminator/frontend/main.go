@@ -1,16 +1,17 @@
 package main
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/windmilleng/enhance/render/api"
 
@@ -91,109 +92,142 @@ func access(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type imageFilter struct {
+	url                string
+	needsOriginalImage bool
+}
+
+var imageFilters = map[string]imageFilter{
+	"glitch":     {"http://glitch", false},
+	"red":        {"http://red", false},
+	"rectangler": {"http://rectangler", true},
+}
+
 func upload(w http.ResponseWriter, r *http.Request) {
-	// receive file
-	file, header, err := r.FormFile("myFile")
+	originalImageBytes, filename, err := fileFromRequest(r)
 	if err != nil {
-		handleHTTPErr(w, "Error retrieving the file")
+		handleHTTPErr(w, err)
 		return
 	}
-	defer file.Close()
-	fmt.Printf("Uploaded File: %+v\tFile Size: %+v\tMIME: %+v\n", header.Filename, header.Size, header.Header)
 
-	// save to temp file
-	fileBytes, err := ioutil.ReadAll(file)
+	err = r.ParseForm()
 	if err != nil {
-		handleHTTPErr(w, fmt.Sprintf("Error reading uploaded file: %v", err))
+		handleHTTPErr(w, httpStatusError{http.StatusBadRequest, err})
 		return
 	}
-	imageType := http.DetectContentType(fileBytes)
-	if imageType != "image/png" {
-		// https://www.bennadel.com/blog/2434-http-status-codes-for-invalid-data-400-vs-422.htm
-		http.Error(w, fmt.Sprintf("Invalid image type: expected \"image/png\", got: %s", imageType), http.StatusUnprocessableEntity)
-		return
-	}
-	originalFileBytes := fileBytes
 
-	resp, err := api.PostRequest(api.RenderRequest{Image: fileBytes}, "http://glitch")
-	if err != nil {
-		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s with glitch: %v", header.Filename, err))
-		return
+	filters := filtersFromValues(r.PostForm)
+	if len(filters) == 0 {
+		filters = []string{"glitch", "red", "rectangler"}
 	}
-	fileBytes = resp.Image
 
-	resp, err = api.PostRequest(api.RenderRequest{Image: fileBytes}, "http://red")
+	modifiedImage, err := applyFilters(originalImageBytes, filters)
 	if err != nil {
-		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s with red: %v", header.Filename, err))
+		handleHTTPErr(w, err)
 		return
 	}
-	fileBytes = resp.Image
-
-	resp, err = api.PostRequest(api.RenderRequest{Image: fileBytes, OriginalImage: originalFileBytes}, "http://rectangler")
-	if err != nil {
-		handleHTTPErr(w, fmt.Sprintf("Error enhancing %s with rectangler: %v", header.Filename, err))
-		return
-	}
-	fileBytes = resp.Image
 
 	// serve output
 	w.Header().Set("Content-Type", "image/png")
-	_, err = w.Write(fileBytes)
+	_, err = w.Write(modifiedImage)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// save to db
-	encoded := base64.StdEncoding.EncodeToString(fileBytes)
-	err = storage.Write(header.Filename, []byte(encoded))
+	encoded := base64.StdEncoding.EncodeToString(modifiedImage)
+	err = storage.Write(filename, []byte(encoded))
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 }
 
-func handleHTTPErr(w http.ResponseWriter, errMsg string) {
-	fmt.Println(errMsg)
-	http.Error(w, errMsg, http.StatusInternalServerError)
+func filtersFromValues(values url.Values) []string {
+	var ret []string
+	for paramName := range values {
+		fmt.Printf("checking if %s is enabling a filter\n", paramName)
+		if !strings.HasPrefix(paramName, "filter_") {
+			continue
+		}
+
+		name := strings.TrimPrefix(paramName, "filter_")
+		if _, ok := imageFilters[name]; ok {
+			ret = append(ret, name)
+		}
+	}
+
+	fmt.Printf("returning filter names %v\n", ret)
+
+	return ret
 }
 
-func sendPostRequest(url string, name string, image []byte) ([]byte, error) {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("image", name)
+type httpStatusError struct {
+	code int
+	err  error
+}
+
+func (e httpStatusError) Error() string {
+	return e.err.Error()
+}
+
+func fileFromRequest(r *http.Request) (image []byte, filename string, err error) {
+	// receive file
+	file, header, err := r.FormFile("myFile")
+	if err != nil {
+		return nil, "", errors.Wrap(err, "getting file from request")
+	}
+	defer file.Close()
+	fmt.Printf("Uploaded File: %+v\tFile Size: %+v\tMIME: %+v\n", header.Filename, header.Size, header.Header)
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "reading uploaded file from request")
+	}
+
+	imageType := http.DetectContentType(fileBytes)
+	if imageType != "image/png" {
+		// https://www.bennadel.com/blog/2434-http-status-codes-for-invalid-data-400-vs-422.htm
+		return nil, "", httpStatusError{http.StatusUnprocessableEntity, fmt.Errorf("invalid image type: expected \"image/png\", got: %s", imageType)}
+	}
+
+	return fileBytes, header.Filename, nil
+}
+
+func applyFilters(imageBytes []byte, filterNames []string) ([]byte, error) {
+	currentImageBytes := append([]byte{}, imageBytes...)
+
+	for _, f := range filterNames {
+		var err error
+		currentImageBytes, err = applyFilter(imageFilters[f], currentImageBytes, imageBytes)
+		if err != nil {
+			return nil, fmt.Errorf("Error enhancing %s: %v", f, err)
+		}
+	}
+
+	return currentImageBytes, nil
+}
+
+func applyFilter(filter imageFilter, imageBytes []byte, originalImageBytes []byte) ([]byte, error) {
+	rr := api.RenderRequest{Image: imageBytes}
+	if filter.needsOriginalImage {
+		rr.OriginalImage = originalImageBytes
+	}
+
+	resp, err := api.PostRequest(rr, filter.url)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = part.Write(image)
-	if err != nil {
-		return nil, err
-	}
-	err = writer.Close()
-	if err != nil {
-		return nil, err
-	}
+	return resp.Image, nil
+}
 
-	request, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		return nil, err
+func handleHTTPErr(w http.ResponseWriter, err error) {
+	fmt.Println(err.Error())
+	status := http.StatusInternalServerError
+	if se, ok := err.(httpStatusError); ok {
+		status = se.code
 	}
-
-	request.Header.Add("Content-Type", writer.FormDataContentType())
-	request.Header.Add("accept", "application/json")
-	client := &http.Client{}
-
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	content, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return content, nil
+	http.Error(w, err.Error(), status)
 }
