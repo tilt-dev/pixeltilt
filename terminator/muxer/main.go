@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -34,6 +35,8 @@ func main() {
 	}
 
 	http.HandleFunc("/", index)
+	http.HandleFunc("/filters", filters)
+	http.HandleFunc("/images", images)
 	http.HandleFunc("/upload", upload)
 	http.HandleFunc("/access/", access)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
@@ -103,6 +106,54 @@ var imageFilters = map[string]imageFilter{
 	"rectangler": {"http://rectangler", true},
 }
 
+type filter struct {
+	Name  string `json:"name"`
+	Key   string `json:"key"`
+	Label string `json:"label"`
+}
+
+var defaultFilters = []filter{
+	filter{"filter_glitch", "glitch", "Glitch"},
+	filter{"filter_red", "red", "Red"},
+	filter{"filter_rectangler", "rectangler", "Rectangler"},
+}
+
+func filters(w http.ResponseWriter, r *http.Request) {
+	j, err := json.MarshalIndent(defaultFilters, "", "  ")
+	if err != nil {
+		handleHTTPErr(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	_, err = w.Write(j)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func images(w http.ResponseWriter, r *http.Request) {
+	imageKeys, err := storage.List()
+	if err != nil {
+		handleHTTPErr(w, err)
+		return
+	}
+
+	j, err := json.MarshalIndent(imageKeys, "", "  ")
+	if err != nil {
+		handleHTTPErr(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(j)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+// TODO(dmiller): this should return the image URL instead of the image itself
 func upload(w http.ResponseWriter, r *http.Request) {
 	originalImageBytes, filename, err := fileFromRequest(r)
 	if err != nil {

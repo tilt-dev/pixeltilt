@@ -15,6 +15,12 @@ docker_build("glitch", ".", dockerfile="glitch.dockerfile",
   ])
 docker_build("rectangler", ".", dockerfile="rectangler.dockerfile", only=['rectangler', 'render/api'] + shared_deps)
 docker_build("red", ".", dockerfile="red.dockerfile", only=['red', 'render/api'] + shared_deps)
+docker_build("frontend", ".", dockerfile="frontend.dockerfile", only=['frontend'],
+  live_update=[
+    sync('frontend', '/usr/src/app'),
+    run('cd /usr/src/app && npm install', trigger=['package.json', 'package-lock.json'])
+  ]
+)
 
 k8s_yaml(
   [
@@ -24,6 +30,7 @@ k8s_yaml(
     'glitch/k8s.yaml',
     'rectangler/k8s.yaml',
     'red/k8s.yaml',
+    'frontend/k8s.yaml',
   ]
 )
 
@@ -31,3 +38,4 @@ k8s_resource("muxer", port_forwards="8080")
 k8s_resource("glitch", port_forwards="8085")
 k8s_resource("red", port_forwards="8086")
 k8s_resource("rectangler", port_forwards="8087")
+k8s_resource("frontend", port_forwards="3000")
