@@ -117,9 +117,6 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filters := filtersFromValues(r.PostForm)
-	if len(filters) == 0 {
-		filters = []string{"glitch", "red", "rectangler"}
-	}
 
 	modifiedImage, err := applyFilters(originalImageBytes, filters)
 	if err != nil {
