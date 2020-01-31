@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -18,6 +17,19 @@ import (
 
 	"github.com/windmilleng/enhance/storage/client"
 )
+
+type filter struct {
+	Label         string `json:"label"`
+	URL           string `json:"url"`
+	NeedsOriginal bool   `json:"needsoriginal"`
+}
+
+// Order matters!
+var enabledFilters = []filter{
+	filter{"Red", "http://red", false},
+	filter{"Glitch", "http://glitch", false},
+	filter{"Rectangler", "http://rectangler", true},
+}
 
 var storage client.Storage
 
@@ -43,22 +55,18 @@ func main() {
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	// show index.html
-	absPath, err := filepath.Abs("./muxer/index.html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	file, err := ioutil.ReadFile(absPath)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(file)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	html := `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Document</title>
+  </head>
+  <body>
+    <form
+      enctype="multipart/form-data"
+      action="/upload"
+      method="post"
+    >`
 
 	imageKeys, err := storage.List()
 	if err != nil {
@@ -66,18 +74,32 @@ func index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// show current db entries
-	list := "<br>"
-	for _, key := range imageKeys {
-		list += "<a href='/access/" + key + "/'>" + key + "</a><br>"
+	// <input type="checkbox" id="glitch" name="filter_glitch" checked /><label for="glitch">Glitch</label><br>
+	for i := 0; i < len(enabledFilters); i++ {
+		lowerName := strings.ToLower(enabledFilters[i].Label)
+		html += `<input type="checkbox" id="` + lowerName + `" name="filter_` + lowerName + `" checked /><label for="` + lowerName + `">` + enabledFilters[i].Label + `</label><br>`
 	}
-	_, err = w.Write([]byte(list))
+
+	html += `
+      <input type="file" name="myFile" />
+      <input type="submit" value="upload" />
+	</form>
+	<br>`
+
+	// show current db entries
+	for _, key := range imageKeys {
+		html += "<a href='/access/" + key + "/'>" + key + "</a><br><br>"
+	}
+
+	html += `
+  </body>
+</html>`
+
+	_, err = w.Write([]byte(html))
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
-	// TODO: use proper templating? maybe?
 }
 
 func access(w http.ResponseWriter, r *http.Request) {
@@ -95,31 +117,8 @@ func access(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type imageFilter struct {
-	url                string
-	needsOriginalImage bool
-}
-
-var imageFilters = map[string]imageFilter{
-	"glitch":     {"http://glitch", false},
-	"red":        {"http://red", false},
-	"rectangler": {"http://rectangler", true},
-}
-
-type filter struct {
-	Name  string `json:"name"`
-	Key   string `json:"key"`
-	Label string `json:"label"`
-}
-
-var defaultFilters = []filter{
-	filter{"filter_glitch", "glitch", "Glitch"},
-	filter{"filter_red", "red", "Red"},
-	filter{"filter_rectangler", "rectangler", "Rectangler"},
-}
-
 func filters(w http.ResponseWriter, r *http.Request) {
-	j, err := json.MarshalIndent(defaultFilters, "", "  ")
+	j, err := json.MarshalIndent(enabledFilters, "", "  ")
 	if err != nil {
 		handleHTTPErr(w, err)
 		return
@@ -201,13 +200,15 @@ func filtersFromValues(values url.Values) []string {
 		}
 
 		name := strings.TrimPrefix(paramName, "filter_")
-		if _, ok := imageFilters[name]; ok {
-			ret = append(ret, name)
+
+		for i := 0; i < len(enabledFilters); i++ {
+			if strings.ToLower(enabledFilters[i].Label) == name {
+				ret = append(ret, enabledFilters[i].Label)
+			}
 		}
 	}
 
 	fmt.Printf("returning filter names %v\n", ret)
-
 	return ret
 }
 
@@ -248,22 +249,26 @@ func applyFilters(imageBytes []byte, filterNames []string) ([]byte, error) {
 
 	for _, f := range filterNames {
 		var err error
-		currentImageBytes, err = applyFilter(imageFilters[f], currentImageBytes, imageBytes)
-		if err != nil {
-			return nil, fmt.Errorf("Error enhancing %s: %v", f, err)
+		for i := 0; i < len(enabledFilters); i++ {
+			if f == enabledFilters[i].Label {
+				fmt.Println("APPLYFILTER:", f)
+				currentImageBytes, err = applyFilter(enabledFilters[i], currentImageBytes, imageBytes)
+				if err != nil {
+					return nil, fmt.Errorf("Error enhancing %s: %v", f, err)
+				}
+			}
 		}
 	}
-
 	return currentImageBytes, nil
 }
 
-func applyFilter(filter imageFilter, imageBytes []byte, originalImageBytes []byte) ([]byte, error) {
+func applyFilter(filter filter, imageBytes []byte, originalImageBytes []byte) ([]byte, error) {
 	rr := api.RenderRequest{Image: imageBytes}
-	if filter.needsOriginalImage {
+	if filter.NeedsOriginal {
 		rr.OriginalImage = originalImageBytes
 	}
 
-	resp, err := api.PostRequest(rr, filter.url)
+	resp, err := api.PostRequest(rr, filter.URL)
 	if err != nil {
 		return nil, err
 	}
