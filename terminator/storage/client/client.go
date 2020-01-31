@@ -105,6 +105,10 @@ func (sc *Storage) List() ([]string, error) {
 		return nil, errors.Wrap(err, "decoding http response")
 	}
 
-	return lr.Names, nil
+	// Don't return null because null is the root of all evil
+	if lr.Names == nil {
+		return []string{}, nil
+	}
 
+	return lr.Names, nil
 }

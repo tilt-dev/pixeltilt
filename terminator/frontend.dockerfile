@@ -1,19 +1,11 @@
-FROM golang:1.13.6-alpine
+FROM node:13.7.0-alpine3.10
 
-RUN apk update && apk upgrade && apk add --no-cache git
+WORKDIR /usr/src/app
 
-WORKDIR /app
+ADD frontend/package.json frontend/package-lock.json ./
+RUN npm install
 
-COPY go.mod go.sum ./
+ADD frontend .
 
-RUN go mod download
-
-COPY frontend frontend
-COPY storage storage
-COPY render/api render/api
-
-RUN GO111MODULE=on go build frontend/main.go
-
-EXPOSE 8080
-
-CMD ["./main"]
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
