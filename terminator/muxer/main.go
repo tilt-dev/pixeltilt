@@ -152,6 +152,10 @@ func images(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type uploadResponse struct {
+	Name string `json:"name"`
+}
+
 // TODO(dmiller): this should return the image URL instead of the image itself
 func upload(w http.ResponseWriter, r *http.Request) {
 	originalImageBytes, filename, err := fileFromRequest(r)
@@ -174,20 +178,22 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// serve output
-	w.Header().Set("Content-Type", "image/png")
-	_, err = w.Write(modifiedImage)
+	// save to db
+	encoded := base64.StdEncoding.EncodeToString(modifiedImage)
+	name, err := storage.Write(filename, []byte(encoded))
 	if err != nil {
-		fmt.Println(err)
+		handleHTTPErr(w, err)
 		return
 	}
 
-	// save to db
-	encoded := base64.StdEncoding.EncodeToString(modifiedImage)
-	err = storage.Write(filename, []byte(encoded))
+	resp := uploadResponse{
+		Name: name,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Printf("Error JSON encoding response: %v", err)
 	}
 }
 

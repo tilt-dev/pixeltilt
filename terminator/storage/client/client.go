@@ -24,29 +24,35 @@ func NewStorageClient(rawurl string) (Storage, error) {
 	return Storage{url: u}, nil
 }
 
-func (sc *Storage) Write(name string, b []byte) error {
+func (sc *Storage) Write(name string, b []byte) (string, error) {
 	wr := api.WriteRequest{Name: name, Body: b}
 	buf := &bytes.Buffer{}
 	err := json.NewEncoder(buf).Encode(wr)
 	if err != nil {
-		return errors.Wrap(err, "encoding write request")
+		return "", errors.Wrap(err, "encoding write request")
 	}
 	u, _ := url.Parse(sc.url.String())
 	u.Path = "/write"
 	resp, err := http.Post(u.String(), "application/json", buf)
 	if err != nil {
-		return errors.Wrap(err, "http posting")
+		return "", errors.Wrap(err, "http posting")
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return errors.Wrap(err, "reading response body on non-200 response")
+			return "", errors.Wrap(err, "reading response body on non-200 response")
 		}
-		return errors.Errorf("http status %s, body %q", resp.Status, string(respBody))
+		return "", errors.Errorf("http status %s, body %q", resp.Status, string(respBody))
 	}
 
-	return nil
+	var wresp api.WriteResponse
+	err = json.NewDecoder(resp.Body).Decode(&wresp)
+	if err != nil {
+		errors.Wrap(err, "reading response body on 200 response")
+	}
+
+	return wresp.Name, nil
 }
 
 func (sc *Storage) Read(name string) ([]byte, error) {

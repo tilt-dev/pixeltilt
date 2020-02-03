@@ -5,6 +5,10 @@ type WriteRequest struct {
 	Body []byte
 }
 
+type WriteResponse struct {
+	Name string
+}
+
 type ReadRequest struct {
 	Name string
 }
