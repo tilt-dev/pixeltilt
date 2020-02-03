@@ -40,14 +40,14 @@ const Index = props => {
       <br />
       <form>
         {filters.map(item => (
-          <label key={item.key}>
-            {item.name}
+          <label key={item.label}>
+            {item.label}
             <input
               type="checkbox"
-              id={item.key}
-              name={item.name}
+              id={item.label}
+              name={item.label}
               onChange={handleChangeFilter}
-              checked={checkedItems[item.name]}
+              checked={checkedItems[item.label]}
             />
           </label>
         ))}
@@ -75,7 +75,7 @@ Index.getInitialProps = async function() {
   const imagesData = await imagesRes.json();
 
   const defaultCheckedItems = {};
-  filtersData.forEach(c => (defaultCheckedItems[c.name] = true));
+  filtersData.forEach(c => (defaultCheckedItems[c.label] = true));
 
   return {
     filters: filtersData,
