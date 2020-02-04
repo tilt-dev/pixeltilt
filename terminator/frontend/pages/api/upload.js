@@ -5,9 +5,7 @@ import request from "request-promise-native";
 
 const uploadStorage = multer({ dest: "uploads/" });
 
-// TODO(dmiller): change this to handle the response being an image URL
 export default async (req, res) => {
-  res.setHeader("Content-Type", "image/png");
   let upload = util.promisify(uploadStorage.any());
   await upload(req, res);
   let filters = req.body.filters;
@@ -32,16 +30,12 @@ export default async (req, res) => {
       "Content-Type": "multipart/form-data"
     },
     formData: formData,
-    encoding: "binary",
-    resolveWithFullResponse: true
+    json: true
   };
 
-  let proxyResult = await request(options);
+  const proxyResult = await request(options);
 
-  res.write(proxyResult.body, "binary");
-  res.statusCode = 200;
-
-  res.end();
+  res.end(JSON.stringify(proxyResult));
 };
 
 export const config = {

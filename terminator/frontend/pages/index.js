@@ -13,7 +13,7 @@ const Index = props => {
 
   const handleChangeFilter = event => {
     setCheckedItems({
-      ...defaultCheckedItems,
+      ...checkedItems,
       [event.target.name]: event.target.checked
     });
   };
@@ -27,13 +27,14 @@ const Index = props => {
     const data = new FormData();
     const file = fileToUpload;
     data.append("file", file);
-    data.append("filters", JSON.stringify(checkedItems));
+    const filters = Object.keys(checkedItems)
+      .filter(key => checkedItems[key])
+      .reduce((res, key) => ((res[key] = checkedItems[key]), res), {});
+    data.append("filters", JSON.stringify(filters));
     let response = await axios.post("/api/upload", data, {});
-    console.log(response.data);
-    setResultingImage(response.data);
+    setResultingImage(response.data.name);
   };
 
-  // TODO(dmiller): this should display the resulting image from the returned image URL
   return (
     <div>
       <label>Checked item name : {JSON.stringify(props.filtersData)}</label>{" "}
@@ -45,9 +46,9 @@ const Index = props => {
             <input
               type="checkbox"
               id={item.label}
-              name={item.label}
+              name={"filter_" + item.label.toLowerCase()}
               onChange={handleChangeFilter}
-              checked={checkedItems[item.label]}
+              checked={checkedItems["filter_" + item.label.toLowerCase()]}
             />
           </label>
         ))}
@@ -62,6 +63,9 @@ const Index = props => {
           Render
         </button>
       </form>
+      {resultingImage !== "" && (
+        <img src={`/api/image/${resultingImage}`}></img>
+      )}
     </div>
   );
 };
@@ -75,7 +79,9 @@ Index.getInitialProps = async function() {
   const imagesData = await imagesRes.json();
 
   const defaultCheckedItems = {};
-  filtersData.forEach(c => (defaultCheckedItems[c.label] = true));
+  filtersData.forEach(
+    c => (defaultCheckedItems["filter_" + c.label.toLowerCase()] = true)
+  );
 
   return {
     filters: filtersData,

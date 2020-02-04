@@ -100,6 +100,9 @@ func write(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	response := api.WriteResponse{Name: name}
+	err = json.NewEncoder(w).Encode(&response)
 }
 
 func list(w http.ResponseWriter, r *http.Request) {
