@@ -1,0 +1,8 @@
+./amount.go
+./generated.pb.go
+./math.go
+./quantity.go
+./quantity_proto.go
+./scale_int.go
+./suffix.go
+./zz_generated.deepcopy.go

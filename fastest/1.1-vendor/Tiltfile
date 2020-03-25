@@ -1,0 +1,14 @@
+docker_build("glitch", ".", dockerfile="glitch.dockerfile", only=['glitch', 'render/api', 'go.mod', 'vendor'],)
+docker_build("storage", ".", dockerfile="storage.dockerfile", only=['storage', 'go.mod'])
+docker_build("muxer", ".", dockerfile="muxer.dockerfile", only=['muxer', 'storage/client', 'storage/api', 'render/api', 'go.mod'])
+
+k8s_yaml([
+    'glitch/k8s.yaml',
+    'storage/k8s.yaml',
+    'muxer/k8s.yaml',
+])
+
+k8s_resource("glitch", port_forwards="8085")
+k8s_resource("muxer", port_forwards="8080")
+
+local_resource('update', "sed -re 's/time.Unix\(0, ([0-9]*)\)/time.Unix\(0, '\"$(($(date +%s%N)))\"'\)/' -i glitch/main.go")

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: glitch
+  labels:
+    app: glitch
+spec:
+  selector:
+    matchLabels:
+      app: glitch
+  template:
+    metadata:
+      labels:
+        app: glitch
+        tier: web
+    spec:
+      containers:
+      - name: glitch
+        image: glitch
+        ports:
+        - containerPort: 8085
+        resources:
+          requests:
+            cpu: "500m"
+          limits:
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: glitch
+  labels:
+    app: glitch
+spec:
+  ports:
+    - port: 80
+      targetPort: 8085
+      protocol: TCP
+  selector:
+    app: glitch

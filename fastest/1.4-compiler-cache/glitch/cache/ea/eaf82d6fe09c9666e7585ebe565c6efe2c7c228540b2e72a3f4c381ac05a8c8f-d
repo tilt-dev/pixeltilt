@@ -1,0 +1,4 @@
+./doc.go
+./labels.go
+./selector.go
+./zz_generated.deepcopy.go

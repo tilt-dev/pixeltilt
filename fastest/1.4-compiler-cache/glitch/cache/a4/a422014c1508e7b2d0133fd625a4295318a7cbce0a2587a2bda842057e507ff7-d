@@ -1,0 +1,6 @@
+./doc.go
+./filter.go
+./mux.go
+./streamwatcher.go
+./watch.go
+./zz_generated.deepcopy.go
