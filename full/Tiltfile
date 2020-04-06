@@ -1,0 +1,62 @@
+docker_build(
+  "frontend", 
+  ".", 
+  dockerfile="frontend.dockerfile", only=['frontend'],
+  live_update=[
+    sync('frontend', '/usr/src/app'),
+    run('cd /usr/src/app && npm install', trigger=[
+      'package.json', 
+      'package-lock.json'
+      ])
+  ]
+)
+
+k8s_yaml(
+  [
+    'max-object-detector/k8s.yaml',
+    'frontend/k8s.yaml',
+  ]
+)
+
+k8s_resource("frontend", port_forwards="3000")
+
+def initialize(service_list, starting_port=8080, extra_files=None):
+  for service in service_list:
+    files = [service + "/main"]
+    if extra_files != None:
+      files.extend(extra_files)
+    gofiles = str(local("find ./" + service + " -name *.go | grep -v start.go", quiet=True)).rstrip().split("\n")
+
+    docker_build(
+      service, 
+      '.', 
+      dockerfile_contents=local('files="' + ' '.join(files) + '" ./generate-dockerfile.sh', quiet=True), 
+      only=files, 
+      live_update=[sync(service + '/main', '/app/main')]
+      )
+
+    local_resource(
+      'recompile-' + service,
+      'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ' + service + '/main -ldflags "-w" ./' + service,
+      deps=['./' + service + '/start.go'],
+      resource_deps=['benchmark-all', 'benchmark-' + service]
+      )
+
+    local_resource(
+      'benchmark-' + service,
+      'services="' + service + '" ./generate-start.sh',
+      deps=gofiles
+    )
+
+    k8s_yaml(local("name=" + service + " ./generate-yaml.sh", quiet=True))
+    k8s_resource(service, port_forwards=str(starting_port) + ':8080')
+    starting_port = starting_port + 1
+
+
+initialize(['muxer', 'glitch', 'red', 'storage'])
+initialize(['rectangler'], 8085, ["./rectangler/Inconsolata-Bold.ttf"])
+
+local_resource(
+  'benchmark-all',
+  'services="glitch muxer rectangler red render storage" ./generate-start.sh'
+)

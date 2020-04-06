@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: muxer
+  labels:
+    app: muxer
+spec:
+  selector:
+    matchLabels:
+      app: muxer
+  template:
+    metadata:
+      labels:
+        app: muxer
+        tier: web
+    spec:
+      containers:
+      - name: muxer
+        image: muxer
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "10m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: muxer
+  labels:
+    app: muxer
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: muxer

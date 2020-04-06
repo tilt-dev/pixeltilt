@@ -1,0 +1,3 @@
+./generated.pb.go
+./group_version.go
+./interfaces.go
