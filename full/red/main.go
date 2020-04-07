@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/windmilleng/enhance/render/api"
+	"github.com/windmilleng/pixeltilter/render/api"
 )
 
 func main() {

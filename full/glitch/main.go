@@ -12,7 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sug0/go-glitch"
-	"github.com/windmilleng/enhance/render/api"
+	"github.com/windmilleng/pixeltilter/render/api"
 )
 
 // glitch formulas from: https://github.com/sug0/go-glitch/blob/master/res/cool.txt

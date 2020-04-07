@@ -13,7 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sug0/go-glitch"
-	"github.com/windmilleng/enhance/render/api"
+	"github.com/windmilleng/pixeltilter/render/api"
 
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -25,7 +25,7 @@ const glitchExprStr = "b ^ (r | (s : (x # B)))"
 var glitchExpr *glitch.Expression
 
 func main() {
-	called := time.Unix(0, 1585136328417613634)
+	called := time.Unix(0, 1586174682393439468)
 	current := time.Now()
 	elapsed := current.Sub(called)
 	fmt.Println("\nStarting glitch...")

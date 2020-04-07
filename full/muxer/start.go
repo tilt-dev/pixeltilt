@@ -6,7 +6,7 @@ import (
 )
 
 func Benchmark() {
-start := time.Unix(0, 1585930075314553033)
+start := time.Unix(0, 1586176210978360547)
 if start.IsZero() {
 fmt.Println("Couldn't benchmark start time!")
 }

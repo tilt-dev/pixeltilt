@@ -1,4 +1,4 @@
-module github.com/windmilleng/enhance
+module github.com/windmilleng/pixeltilter
 
 go 1.13
 
