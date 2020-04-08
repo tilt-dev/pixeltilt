@@ -1,77 +1,121 @@
 import { useState } from "react";
+import Header from "../components/Header";
+import styled from "styled-components";
 import fetch from "isomorphic-unfetch";
 import axios from "axios";
-import btoa from "btoa";
+
+let MainPane = styled.main`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+`;
+
+let MaxImg = styled.img`
+  max-width: 60vw;
+  max-height: 60vh;
+`;
 
 const Index = props => {
   const filters = props.filters;
   const defaultCheckedItems = props.defaultCheckedItems;
 
   const [checkedItems, setCheckedItems] = useState(defaultCheckedItems);
-  const [fileToUpload, setFileToUpload] = useState();
+  const [fileSelection, setFileSelection] = useState();
   const [resultingImage, setResultingImage] = useState("");
+  const [applyState, setApplyState] = useState({
+    inProgress: false,
+    error: null
+  });
 
-  const handleChangeFilter = event => {
-    setCheckedItems({
-      ...checkedItems,
-      [event.target.name]: event.target.checked
-    });
+  const statusMessage = () => {
+    if (applyState.inProgress) {
+      return "Applying filter…";
+    }
+
+    if (applyState.error) {
+      return "Error applying filter: " + applyState.error;
+    }
+
+    if (resultingImage || fileSelection) {
+      return "Select one or more filters and apply";
+    }
+
+    return "Upload an image. Apply filters once selected";
+  };
+
+  const reset = () => {
+    setResultingImage("");
+    setFileSelection(null);
+    setCheckedItems(defaultCheckedItems);
+    setApplyState({ inProgress: false, error: null });
   };
 
   const handleUploadFile = e => {
     const file = e.currentTarget.files[0];
-    setFileToUpload(file);
+    setFileSelection(file);
   };
 
-  const uploadFile = async () => {
+  const apply = async () => {
     const data = new FormData();
-    const file = fileToUpload;
+    const file = fileSelection;
     data.append("file", file);
     const filters = Object.keys(checkedItems)
       .filter(key => checkedItems[key])
       .reduce((res, key) => ((res[key] = checkedItems[key]), res), {});
     data.append("filters", JSON.stringify(filters));
-    let response = await axios.post("/api/upload", data, {});
-    setResultingImage(response.data.name);
+    setApplyState({ inProgress: true });
+
+    axios
+      .post("/api/upload", data, {})
+      .then(response => {
+        setResultingImage(response.data.name);
+        setApplyState({ inProgress: false });
+      })
+      .catch(err => {
+        setApplyState({ error: err });
+      });
+  };
+
+  const renderContent = () => {
+    if (resultingImage) {
+      return <MaxImg src={`/api/image/${resultingImage}`}></MaxImg>;
+    }
+
+    if (fileSelection) {
+      let url = URL.createObjectURL(fileSelection);
+      return <MaxImg src={url}></MaxImg>;
+    }
+
+    return (
+      <div>
+        <div>
+          <label htmlFor="upload">File to upload</label>
+        </div>
+        <div>
+          <input type="file" onChange={handleUploadFile} />
+        </div>
+      </div>
+    );
   };
 
   return (
     <div>
-      <label>Checked item name : {JSON.stringify(props.filtersData)}</label>{" "}
-      <br />
-      <form>
-        {filters.map(item => (
-          <label key={item.label}>
-            {item.label}
-            <input
-              type="checkbox"
-              id={item.label}
-              name={"filter_" + item.label.toLowerCase()}
-              onChange={handleChangeFilter}
-              checked={checkedItems["filter_" + item.label.toLowerCase()]}
-            />
-          </label>
-        ))}
-        <br />
-        <label>
-          <br />
-          File to upload : {JSON.stringify(fileToUpload)}
-          <br />
-          <input type="file" onChange={handleUploadFile} />
-        </label>
-        <button type="button" onClick={uploadFile}>
-          Render
-        </button>
-      </form>
-      {resultingImage !== "" && (
-        <img src={`/api/image/${resultingImage}`}></img>
-      )}
+      <Header
+        filters={filters}
+        setCheckedItems={setCheckedItems}
+        checkedItems={checkedItems}
+        reset={reset}
+        apply={apply}
+        statusMessage={statusMessage()}
+      />
+      <MainPane>{renderContent()}</MainPane>
     </div>
   );
 };
 
 Index.getInitialProps = async function() {
-  // TODO(dmiller): we could await on these things more efficiently
   const filtersRes = await fetch("http://muxer:8080/filters");
   const filtersData = await filtersRes.json();
 
