@@ -13,9 +13,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/windmilleng/pixeltilter/render/api"
+	"github.com/windmilleng/pixeltilt/render/api"
 
-	"github.com/windmilleng/pixeltilter/storage/client"
+	"github.com/windmilleng/pixeltilt/storage/client"
 )
 
 type filter struct {

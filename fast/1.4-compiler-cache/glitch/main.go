@@ -13,7 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sug0/go-glitch"
-	"github.com/windmilleng/pixeltilter/render/api"
+	"github.com/windmilleng/pixeltilt/render/api"
 
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

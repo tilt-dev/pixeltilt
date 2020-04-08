@@ -1,4 +1,4 @@
-module github.com/windmilleng/pixeltilter
+module github.com/windmilleng/pixeltilt
 
 go 1.13
 
