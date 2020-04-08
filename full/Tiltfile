@@ -1,12 +1,11 @@
 docker_build(
   "frontend", 
-  ".", 
-  dockerfile="frontend.dockerfile", only=['frontend'],
+  "./frontend", 
   live_update=[
     sync('frontend', '/usr/src/app'),
     run('cd /usr/src/app && npm install', trigger=[
-      'package.json', 
-      'package-lock.json'
+      'frontend/package.json', 
+      'frontend/package-lock.json'
       ])
   ]
 )
