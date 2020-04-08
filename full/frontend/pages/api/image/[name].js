@@ -7,7 +7,7 @@ export default async (req, res) => {
 
   const options = {
     method: "POST",
-    url: "http://storage/read",
+    url: "http://storage:8080/read",
     json: {
       Name: name
     }
