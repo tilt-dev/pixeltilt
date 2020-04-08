@@ -45,6 +45,12 @@ const Index = props => {
     return "Upload an image. Apply filters once selected";
   };
 
+  const clearAndSetCheckedItems = checkedItems => {
+    setResultingImage("");
+    setCheckedItems(checkedItems);
+    setApplyState({ inProgress: false, error: null });
+  };
+
   const reset = () => {
     setResultingImage("");
     setFileSelection(null);
@@ -104,10 +110,11 @@ const Index = props => {
     <div>
       <Header
         filters={filters}
-        setCheckedItems={setCheckedItems}
+        clearAndSetCheckedItems={clearAndSetCheckedItems}
         checkedItems={checkedItems}
         reset={reset}
         apply={apply}
+        hasFileSelection={!!fileSelection}
         statusMessage={statusMessage()}
       />
       <MainPane>{renderContent()}</MainPane>
@@ -124,7 +131,7 @@ Index.getInitialProps = async function() {
 
   const defaultCheckedItems = {};
   filtersData.forEach(
-    c => (defaultCheckedItems["filter_" + c.label.toLowerCase()] = true)
+    c => (defaultCheckedItems["filter_" + c.label.toLowerCase()] = false)
   );
 
   return {
