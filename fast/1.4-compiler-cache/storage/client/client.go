@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/windmilleng/pixeltilter/storage/api"
+	"github.com/windmilleng/pixeltilt/storage/api"
 
 	"github.com/pkg/errors"
 )

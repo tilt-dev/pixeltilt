@@ -17,7 +17,7 @@ import (
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
 	"github.com/pkg/errors"
-	"github.com/windmilleng/pixeltilter/render/api"
+	"github.com/windmilleng/pixeltilt/render/api"
 )
 
 type data struct {

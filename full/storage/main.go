@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/windmilleng/pixeltilter/storage/api"
+	"github.com/windmilleng/pixeltilt/storage/api"
 
 	"github.com/peterbourgon/diskv"
 )
