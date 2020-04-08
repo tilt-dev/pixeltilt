@@ -25,7 +25,7 @@ export default async (req, res) => {
 
   const options = {
     method: "POST",
-    url: "http://muxer/upload",
+    url: "http://muxer:8080/upload",
     headers: {
       "Content-Type": "multipart/form-data"
     },
