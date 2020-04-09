@@ -119,7 +119,7 @@ function Button(props) {
       onClick={onClick}
       name={name}
       style={props.style}
-      disabled={disabled ? 'true' : ''}
+      disabled={disabled}
       className={extraClasses.join(" ")}
     >
       {props.children}

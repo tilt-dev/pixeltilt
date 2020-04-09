@@ -3,19 +3,32 @@ import Header from "../components/Header";
 import styled from "styled-components";
 import fetch from "isomorphic-unfetch";
 import axios from "axios";
+import UploadControl from "../components/UploadControl"
+import ImageSelect from "../components/ImageSelect"
+import ImageDisplay from "../components/ImageDisplay"
+const babyBear = "/baby-bear.png"
+const plane = "/plane.png"
+const duck = "/duck.png"
+
+let Root = styled.div`
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+`
 
 let MainPane = styled.main`
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100vw;
-  height: 100vh;
+  flex-grow: 1;
 `;
 
-let MaxImg = styled.img`
-  max-width: 60vw;
-  max-height: 60vh;
-`;
+let ImageGrid = styled.div`
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-template-rows: auto auto;
+`
 
 const Index = props => {
   const filters = props.filters;
@@ -28,6 +41,11 @@ const Index = props => {
     inProgress: false,
     error: null
   });
+
+  const setFileBlob = (blob) => {
+    let url = URL.createObjectURL(blob);
+    setFileSelection({blob, url});
+  }
 
   const statusMessage = () => {
     if (applyState.inProgress) {
@@ -58,14 +76,13 @@ const Index = props => {
     setApplyState({ inProgress: false, error: null });
   };
 
-  const handleUploadFile = e => {
-    const file = e.currentTarget.files[0];
-    setFileSelection(file);
-  };
-
   const apply = async () => {
+    if (!fileSelection) {
+      throw new Error('internal error: no file to apply filters on')
+    }
+
     const data = new FormData();
-    const file = fileSelection;
+    const file = fileSelection.blob;
     data.append("file", file);
     const filters = Object.keys(checkedItems)
       .filter(key => checkedItems[key])
@@ -86,28 +103,25 @@ const Index = props => {
 
   const renderContent = () => {
     if (resultingImage) {
-      return <MaxImg src={`/api/image/${resultingImage}`}></MaxImg>;
+      return <ImageDisplay src={`/api/image/${resultingImage}`} />;
     }
 
     if (fileSelection) {
-      let url = URL.createObjectURL(fileSelection);
-      return <MaxImg src={url}></MaxImg>;
+      return <ImageDisplay src={fileSelection.url} isPending={applyState.inProgress} />;
     }
 
     return (
-      <div>
-        <div>
-          <label htmlFor="upload">File to upload</label>
-        </div>
-        <div>
-          <input type="file" onChange={handleUploadFile} />
-        </div>
-      </div>
+      <ImageGrid>
+        <UploadControl setFileBlob={setFileBlob} />
+        <ImageSelect url={babyBear} setFileBlob={setFileBlob} />
+        <ImageSelect url={plane} setFileBlob={setFileBlob} />
+        <ImageSelect url={duck} setFileBlob={setFileBlob} />
+      </ImageGrid>
     );
   };
 
   return (
-    <div>
+    <Root>
       <Header
         filters={filters}
         clearAndSetCheckedItems={clearAndSetCheckedItems}
@@ -117,8 +131,10 @@ const Index = props => {
         hasFileSelection={!!fileSelection}
         statusMessage={statusMessage()}
       />
-      <MainPane>{renderContent()}</MainPane>
-    </div>
+      <MainPane>
+        {renderContent()}
+      </MainPane>
+    </Root>
   );
 };
 
