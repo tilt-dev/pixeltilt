@@ -3,19 +3,16 @@ import Header from "../components/Header";
 import styled from "styled-components";
 import fetch from "isomorphic-unfetch";
 import axios from "axios";
-import UploadControl from "../components/UploadControl"
-import ImageSelect from "../components/ImageSelect"
-import ImageDisplay from "../components/ImageDisplay"
-const babyBear = "/baby-bear.png"
-const plane = "/plane.png"
-const duck = "/duck.png"
+import UploadControl from "../components/UploadControl";
+import ImageSelect from "../components/ImageSelect";
+import ImageDisplay from "../components/ImageDisplay";
 
 let Root = styled.div`
   width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-`
+`;
 
 let MainPane = styled.main`
   display: flex;
@@ -28,12 +25,13 @@ let ImageGrid = styled.div`
   display: grid;
   grid-template-columns: 50% 50%;
   grid-template-rows: auto auto;
-`
+`;
 
 const Index = props => {
   const filters = props.filters;
   const defaultCheckedItems = props.defaultCheckedItems;
 
+  const [recentImages, setRecentImages] = useState(props.defaultImages);
   const [checkedItems, setCheckedItems] = useState(defaultCheckedItems);
   const [fileSelection, setFileSelection] = useState();
   const [resultingImage, setResultingImage] = useState("");
@@ -42,10 +40,31 @@ const Index = props => {
     error: null
   });
 
-  const setFileBlob = (blob) => {
-    let url = URL.createObjectURL(blob);
-    setFileSelection({blob, url});
-  }
+  const selectImage = img => {
+    let url = img.url;
+    let blob = img.blob;
+    let blobPromise = blob
+      ? Promise.resolve(blob)
+      : fetch(url).then(res => res.blob());
+
+    blobPromise
+      .then(blob => {
+        img.blob = blob;
+
+        // Append the image to the front of the recency list,
+        // and remove it if it already exists in the list.
+        let newRecentImages = [img].concat(
+          recentImages.filter(existing => {
+            return existing.url != url;
+          })
+        );
+        setRecentImages(newRecentImages);
+        setFileSelection(img);
+      })
+      .catch(err => {
+        setApplyState({ error: "Error fetching image: " + err });
+      });
+  };
 
   const statusMessage = () => {
     if (applyState.inProgress) {
@@ -53,7 +72,7 @@ const Index = props => {
     }
 
     if (applyState.error) {
-      return "Error applying filter: " + applyState.error;
+      return applyState.error;
     }
 
     if (resultingImage || fileSelection) {
@@ -78,7 +97,7 @@ const Index = props => {
 
   const apply = async () => {
     if (!fileSelection) {
-      throw new Error('internal error: no file to apply filters on')
+      throw new Error("internal error: no file to apply filters on");
     }
 
     const data = new FormData();
@@ -97,7 +116,7 @@ const Index = props => {
         setApplyState({ inProgress: false });
       })
       .catch(err => {
-        setApplyState({ error: err });
+        setApplyState({ error: "Error applying filter: " + err });
       });
   };
 
@@ -107,15 +126,24 @@ const Index = props => {
     }
 
     if (fileSelection) {
-      return <ImageDisplay src={fileSelection.url} isPending={applyState.inProgress} />;
+      return (
+        <ImageDisplay
+          src={fileSelection.url}
+          isPending={applyState.inProgress}
+        />
+      );
     }
+
+    let imageSelects = recentImages.slice(0, 3).map((img, i) => {
+      return (
+        <ImageSelect key={"select" + i} img={img} selectImage={selectImage} />
+      );
+    });
 
     return (
       <ImageGrid>
-        <UploadControl setFileBlob={setFileBlob} />
-        <ImageSelect url={babyBear} setFileBlob={setFileBlob} />
-        <ImageSelect url={plane} setFileBlob={setFileBlob} />
-        <ImageSelect url={duck} setFileBlob={setFileBlob} />
+        <UploadControl selectImage={selectImage} />
+        {imageSelects}
       </ImageGrid>
     );
   };
@@ -131,19 +159,20 @@ const Index = props => {
         hasFileSelection={!!fileSelection}
         statusMessage={statusMessage()}
       />
-      <MainPane>
-        {renderContent()}
-      </MainPane>
+      <MainPane>{renderContent()}</MainPane>
     </Root>
   );
 };
 
 Index.getInitialProps = async function() {
-  const filtersRes = await fetch("http://muxer:8080/filters");
-  const filtersData = await filtersRes.json();
+  const filtersData = await fetch("http://muxer:8080/filters").then(res =>
+    res.json()
+  );
 
-  const imagesRes = await fetch("http://muxer:8080/images");
-  const imagesData = await imagesRes.json();
+  const staticImageUrls = ["/baby-bear.png", "/plane.png", "/duck.png"];
+  let defaultImages = staticImageUrls.map(url => {
+    return { url: url };
+  });
 
   const defaultCheckedItems = {};
   filtersData.forEach(
@@ -152,8 +181,8 @@ Index.getInitialProps = async function() {
 
   return {
     filters: filtersData,
-    images: imagesData,
-    defaultCheckedItems: defaultCheckedItems
+    defaultCheckedItems: defaultCheckedItems,
+    defaultImages: defaultImages
   };
 };
 
