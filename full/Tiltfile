@@ -59,3 +59,8 @@ local_resource(
   'benchmark-all',
   'services="glitch muxer rectangler red render storage" ./generate-start.sh'
 )
+
+local_resource(
+  'flush database',
+  'curl http://localhost:8083/flush'
+)
