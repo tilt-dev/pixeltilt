@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -24,11 +25,29 @@ type filter struct {
 	NeedsOriginal bool   `json:"needsoriginal"`
 }
 
-// Order matters!
+// Order matters!!
 var enabledFilters = []filter{
 	filter{"Red", "http://red:8080", false},
 	filter{"Glitch", "http://glitch:8080", false},
 	filter{"Rectangler", "http://rectangler:8080", true},
+}
+
+type filterSort []string
+
+func (f filterSort) Len() int      { return len(f) }
+func (f filterSort) Swap(i, j int) { f[i], f[j] = f[j], f[i] }
+func (f filterSort) Less(i, j int) bool {
+	return findInFilters(f[i], enabledFilters) < findInFilters(f[j], enabledFilters)
+}
+
+func findInFilters(item string, filters []filter) int {
+	for index, filter := range filters {
+		if item == filter.Label {
+			return index
+		}
+	}
+	// panic("you dun messed up now boi")
+	return -1
 }
 
 var storage client.Storage
@@ -171,6 +190,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filters := filtersFromValues(r.PostForm)
+	sort.Sort(filterSort(filters))
 
 	modifiedImage, err := applyFilters(originalImageBytes, filters)
 	if err != nil {
