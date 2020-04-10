@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -24,7 +25,7 @@ type filter struct {
 	NeedsOriginal bool   `json:"needsoriginal"`
 }
 
-// Order matters!
+// Order matters!!
 var enabledFilters = []filter{
 	filter{"Red", "http://red:8080", false},
 	filter{"Glitch", "http://glitch:8080", false},
@@ -171,6 +172,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filters := filtersFromValues(r.PostForm)
+	sort.Ints(filters)
 
 	modifiedImage, err := applyFilters(originalImageBytes, filters)
 	if err != nil {
@@ -197,24 +199,23 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func filtersFromValues(values url.Values) []string {
-	var ret []string
+func filtersFromValues(values url.Values) []int {
+	var ret []int
+	message := "Filters to apply: "
 	for paramName := range values {
-		fmt.Printf("checking if %s is enabling a filter\n", paramName)
+		fmt.Printf("Checking if %s is enabling a filter...\n", paramName)
 		if !strings.HasPrefix(paramName, "filter_") {
 			continue
 		}
-
 		name := strings.TrimPrefix(paramName, "filter_")
-
 		for i := 0; i < len(enabledFilters); i++ {
 			if strings.ToLower(enabledFilters[i].Label) == name {
-				ret = append(ret, enabledFilters[i].Label)
+				message += enabledFilters[i].Label + " "
+				ret = append(ret, i)
 			}
 		}
 	}
-
-	fmt.Printf("returning filter names %v\n", ret)
+	fmt.Println(message)
 	return ret
 }
 
@@ -250,19 +251,15 @@ func fileFromRequest(r *http.Request) (image []byte, filename string, err error)
 	return fileBytes, header.Filename, nil
 }
 
-func applyFilters(imageBytes []byte, filterNames []string) ([]byte, error) {
+func applyFilters(imageBytes []byte, filterIndexes []int) ([]byte, error) {
 	currentImageBytes := append([]byte{}, imageBytes...)
 
-	for _, f := range filterNames {
+	for _, f := range filterIndexes {
 		var err error
-		for i := 0; i < len(enabledFilters); i++ {
-			if f == enabledFilters[i].Label {
-				fmt.Println("APPLYFILTER:", f)
-				currentImageBytes, err = applyFilter(enabledFilters[i], currentImageBytes, imageBytes)
-				if err != nil {
-					return nil, fmt.Errorf("Error enhancing %s: %v", f, err)
-				}
-			}
+		fmt.Println("Applying Filter:", enabledFilters[f].Label)
+		currentImageBytes, err = applyFilter(enabledFilters[f], currentImageBytes, imageBytes)
+		if err != nil {
+			return nil, fmt.Errorf("Error applying %s: %v", enabledFilters[f].Label, err)
 		}
 	}
 	return currentImageBytes, nil
