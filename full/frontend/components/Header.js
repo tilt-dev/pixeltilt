@@ -10,8 +10,6 @@ import Button from "./Button";
 import color from "./color";
 
 let HeaderRoot = styled.header`
-  position: absolute;
-  width: 100%;
   color: ${color.gray};
   box-sizing: border-box;
 `;
@@ -19,7 +17,6 @@ let HeaderRoot = styled.header`
 let HeaderControls = styled.div`
   display: flex;
   align-items: center;
-  width: 100%;
   min-height: 80px;
   background-color: ${color.grayDark};
   box-sizing: border-box;
@@ -44,6 +41,7 @@ let HeaderTiltLogoCell = styled.a`
 `;
 
 let TiltBrandText = styled.div`
+  font-family: "Fira Code", sans-serif;
   font-size: 9px;
   line-height: 13px;
   text-align: right;
@@ -56,7 +54,7 @@ let HeaderStatus = styled.div`
   align-items: center;
   width: 100%;
   min-height: 40px;
-  background-color: #c4c4c4;
+  background-color: ${color.grayLight};
   box-sizing: border-box;
 `;
 
@@ -160,7 +158,7 @@ const Header = props => {
 
         <HeaderTiltLogoCell href="https://tilt.dev/">
           <TiltLogoSvg height="26px" />
-          <TiltBrandText>A sample app showcasing Tilt</TiltBrandText>
+          <TiltBrandText>A Sample App showcasing</TiltBrandText>
         </HeaderTiltLogoCell>
       </HeaderControls>
       <HeaderStatus>
