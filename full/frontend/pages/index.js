@@ -6,6 +6,7 @@ import axios from "axios";
 import UploadControl from "../components/UploadControl";
 import ImageSelect from "../components/ImageSelect";
 import ImageDisplay from "../components/ImageDisplay";
+import Button from "../components/Button";
 
 let Root = styled.div`
   width: 100%;
@@ -24,13 +25,21 @@ let MainPane = styled.main`
 let ImageGrid = styled.div`
   display: grid;
   grid-template-columns: 50% 50%;
-  grid-template-rows: auto auto;
+`;
+
+let HistoryButtonContainer = styled.div`
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  margin: 16px;
 `;
 
 const Index = props => {
   const filters = props.filters;
   const defaultCheckedItems = props.defaultCheckedItems;
 
+  const [historyImages, setHistoryImages] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
   const [recentImages, setRecentImages] = useState(props.defaultImages);
   const [checkedItems, setCheckedItems] = useState(defaultCheckedItems);
   const [fileSelection, setFileSelection] = useState();
@@ -39,6 +48,34 @@ const Index = props => {
     inProgress: false,
     error: null
   });
+
+  const toggleHistory = () => {
+    if (showHistory) {
+      setShowHistory(false);
+      return;
+    }
+
+    fetch("/api/list")
+      .then(res => res.json())
+      .then(json => {
+        let names = json.Names || [];
+        if (names.length == 0) {
+          setApplyState({ error: "No images in storage" });
+          return;
+        }
+
+        reset();
+        setHistoryImages(
+          names.map(name => {
+            return { url: `/api/image/${name}` };
+          })
+        );
+        setShowHistory(true);
+      })
+      .catch(err => {
+        setApplyState({ error: "Error fetching history: " + err });
+      });
+  };
 
   const selectImage = img => {
     let url = img.url;
@@ -60,9 +97,11 @@ const Index = props => {
         );
         setRecentImages(newRecentImages);
         setFileSelection(img);
+        setShowHistory(false);
       })
       .catch(err => {
         setApplyState({ error: "Error fetching image: " + err });
+        setShowHistory(false);
       });
   };
 
@@ -79,7 +118,7 @@ const Index = props => {
       return "Select one or more filters and apply";
     }
 
-    return "Upload an image. Apply filters once selected";
+    return "Upload or Select an Image. Apply filters once selected";
   };
 
   const clearAndSetCheckedItems = checkedItems => {
@@ -89,6 +128,7 @@ const Index = props => {
   };
 
   const reset = () => {
+    setShowHistory(false);
     setResultingImage("");
     setFileSelection(null);
     setCheckedItems(defaultCheckedItems);
@@ -134,18 +174,27 @@ const Index = props => {
       );
     }
 
-    let imageSelects = recentImages.slice(0, 3).map((img, i) => {
-      return (
-        <ImageSelect key={"select" + i} img={img} selectImage={selectImage} />
-      );
-    });
-
-    return (
-      <ImageGrid>
-        <UploadControl selectImage={selectImage} />
-        {imageSelects}
-      </ImageGrid>
+    let cells = [];
+    cells.push(
+      <UploadControl key="upload-control" selectImage={selectImage} />
     );
+    cells = cells.concat(
+      recentImages.slice(0, 3).map((img, i) => {
+        return (
+          <ImageSelect key={"select" + i} img={img} selectImage={selectImage} />
+        );
+      })
+    );
+
+    if (showHistory) {
+      cells = historyImages.slice(0, 10).map((img, i) => {
+        return (
+          <ImageSelect key={"select" + i} img={img} selectImage={selectImage} />
+        );
+      });
+    }
+
+    return <ImageGrid>{cells}</ImageGrid>;
   };
 
   return (
@@ -160,6 +209,16 @@ const Index = props => {
         statusMessage={statusMessage()}
       />
       <MainPane>{renderContent()}</MainPane>
+      <HistoryButtonContainer>
+        <Button
+          onClick={toggleHistory}
+          isToggle={true}
+          isYellow={true}
+          selected={showHistory}
+        >
+          History
+        </Button>
+      </HistoryButtonContainer>
     </Root>
   );
 };
