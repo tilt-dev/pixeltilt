@@ -4,9 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -31,6 +33,7 @@ func main() {
 	http.HandleFunc("/write", write)
 	http.HandleFunc("/read", read)
 	http.HandleFunc("/list", list)
+	http.HandleFunc("/flush", flush)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 }
 
@@ -116,4 +119,17 @@ func list(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("error encoding response: %v", err), http.StatusInternalServerError)
 		return
 	}
+}
+
+func flush(w http.ResponseWriter, r *http.Request) {
+	dir, err := ioutil.ReadDir("/app/diskv")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error reading diskv directory: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	for _, d := range dir {
+		os.RemoveAll(path.Join([]string{"diskv", d.Name()}...))
+	}
+	w.Write([]byte("Flushed!\n"))
 }
