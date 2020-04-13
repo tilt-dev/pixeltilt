@@ -92,6 +92,12 @@ let ButtonRoot = styled.button`
     background-color: ${color.red};
     color: ${color.grayDark};
   }
+  &.is-selected.is-yellow {
+    background-color: ${color.yellow};
+  }
+  &.is-selected.is-green {
+    background-color: ${color.green};
+  }
   &.is-selected path {
     fill: ${color.grayDark};
   }

@@ -33,11 +33,12 @@ let UploadControlLabel = styled.label`
 `;
 
 function UploadControl(props) {
-  let setFileBlob = props.setFileBlob;
+  let selectImage = props.selectImage;
 
   const handleUploadFile = e => {
-    const file = e.currentTarget.files[0];
-    setFileBlob(file);
+    const blob = e.currentTarget.files[0];
+    const url = URL.createObjectURL(blob);
+    selectImage({ url, blob });
   };
 
   return (

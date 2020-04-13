@@ -16,18 +16,13 @@ let Img = styled.img`
 `;
 
 function ImageSelect(props) {
-  let url = props.url;
-  let setFileBlob = props.setFileBlob;
+  let img = props.img;
+  let selectImage = props.selectImage;
 
   let onClick = e => {
-    fetch(url)
-      .then(response => response.blob())
-      .then(blob => setFileBlob(blob))
-      .catch(err => {
-        console.error("Error converting URL into blob", err);
-      });
+    selectImage(img);
   };
-  return <Img src={url} onClick={onClick} />;
+  return <Img src={img.url} onClick={onClick} />;
 }
 
 export default ImageSelect;
