@@ -1,0 +1,31 @@
+docker_build("frontend", "./frontend", live_update=[sync('frontend', '/usr/src/app'), run('cd /usr/src/app && npm install', trigger=['frontend/package.json', 'frontend/package-lock.json'])])
+
+docker_build("glitch", ".", dockerfile="glitch.dockerfile", only=['glitch', 'render/api', 'go.mod', 'vendor'])
+# docker_build("glitch", ".", dockerfile="glitch.dockerfile", only=['glitch', 'render/api', 'go.mod', 'vendor'], live_update=[sync('glitch', '/app/glitch')])
+
+docker_build("red", ".", dockerfile="red.dockerfile", only=['red', 'render/api', 'go.mod', 'vendor'], live_update=[sync('red', '/app/red')])
+
+docker_build("rectangler", ".", dockerfile="rectangler.dockerfile", only=['rectangler', 'render/api', 'go.mod', 'vendor'], live_update=[sync('rectangler', '/app/rectangler')])
+
+docker_build("storage", ".", dockerfile="storage.dockerfile", only=['storage', 'render/api', 'go.mod', 'vendor'], live_update=[sync('storage', '/app/storage')])
+
+docker_build("muxer", ".", dockerfile="muxer.dockerfile", only=['muxer', 'storage/client', 'storage/api', 'render/api', 'go.mod', 'vendor'])
+
+k8s_yaml([
+    'glitch/k8s.yaml',
+    'red/k8s.yaml',
+    'rectangler/k8s.yaml',
+    'storage/k8s.yaml',
+    'muxer/k8s.yaml',
+    'max-object-detector/k8s.yaml',
+    'frontend/k8s.yaml',
+])
+
+k8s_resource("frontend", port_forwards="3000")
+k8s_resource("storage", port_forwards="8080")
+
+local_resource(
+  'flush-database',
+  'curl http://localhost:8080/flush',
+  resource_deps=['storage']
+)
