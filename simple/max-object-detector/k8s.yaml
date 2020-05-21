@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: max-object-detector
+  labels:
+    app: max-object-detector
+spec:
+  selector:
+    matchLabels:
+      app: max-object-detector
+  template:
+    metadata:
+      labels:
+        app: max-object-detector
+        tier: backend
+    spec:
+      containers:
+      - name: max-object-detector
+        image: codait/max-object-detector
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            cpu: "10m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: max-object-detector
+  labels:
+    app: max-object-detector
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+  selector:
+    app: max-object-detector
