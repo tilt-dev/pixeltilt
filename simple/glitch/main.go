@@ -53,6 +53,7 @@ import (
 // const glitchExprStr = "182 + (x + (s - (y % (15 & (r ? (e + (s : (76 - (y # (r * (r ? (r | (y % (r ? (195 ? (R - (123 > (b : N)))))))))))))))")))
 // const glitchExprStr = "b ^ (164 - (b < (G # (b ^ (e % r)))))"
 // const glitchExprStr = "c | (s < (c & (r ? (B | (e - (Y < (Y ^ Y)))))))"
+
 const glitchExprStr = "b ^ (r | (s : (x # B)))"
 
 // const glitchExprStr = "G / (b / (N > (110 > s)))"
