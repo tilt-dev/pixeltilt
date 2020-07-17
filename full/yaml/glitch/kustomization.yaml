@@ -1,0 +1,8 @@
+resources:
+- ../base
+
+namePrefix: glitch-
+commonLabels:
+    app: glitch
+patchesStrategicMerge:
+- patch.yaml
