@@ -41,12 +41,6 @@ def initialize(service_list, starting_port=8080, extra_files=None):
       resource_deps=['benchmark-all', 'benchmark-' + service]
       )
 
-    local_resource(
-      'benchmark-' + service,
-      'services="' + service + '" ./generate-start.sh',
-      deps=gofiles
-    )
-
     #k8s_yaml(local("name=" + service + " ./generate-yaml.sh", quiet=True))
     k8s_yaml(kustomize(os.path.join("yaml", service)))
     k8s_resource(service+"-deployment", port_forwards=str(starting_port) + ':8080')
@@ -55,11 +49,6 @@ def initialize(service_list, starting_port=8080, extra_files=None):
 
 initialize(['muxer', 'glitch', 'red', 'storage'])
 initialize(['rectangler'], 8085, ["./rectangler/Inconsolata-Bold.ttf"])
-
-local_resource(
-  'benchmark-all',
-  'services="glitch muxer rectangler red render storage" ./generate-start.sh'
-)
 
 local_resource(
   'flush database',
