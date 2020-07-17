@@ -10,7 +10,7 @@ spec:
     spec:
       containers:
       - name: name
-        image: REPLACEME 
+        image: replaceme 
         ports:
         - containerPort: 8080
 ---

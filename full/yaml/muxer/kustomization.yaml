@@ -1,11 +1,10 @@
 resources:
 - ../base
-
 images:
 - name: replaceme
-  newName: glitch
-namePrefix: glitch-
+  newName: muxer
+namePrefix: muxer-
 commonLabels:
-    app: glitch
+    app: muxer 
 patchesStrategicMerge:
 - patch.yaml

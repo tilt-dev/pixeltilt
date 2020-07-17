@@ -47,8 +47,9 @@ def initialize(service_list, starting_port=8080, extra_files=None):
       deps=gofiles
     )
 
-    k8s_yaml(local("name=" + service + " ./generate-yaml.sh", quiet=True))
-    k8s_resource(service, port_forwards=str(starting_port) + ':8080')
+    #k8s_yaml(local("name=" + service + " ./generate-yaml.sh", quiet=True))
+    k8s_yaml(kustomize(os.path.join("yaml", service)))
+    k8s_resource(service+"-deployment", port_forwards=str(starting_port) + ':8080')
     starting_port = starting_port + 1
 
 

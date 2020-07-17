@@ -3,9 +3,9 @@ resources:
 
 images:
 - name: replaceme
-  newName: glitch
-namePrefix: glitch-
+  newName: storage
+namePrefix: storage-
 commonLabels:
-    app: glitch
+    app: storage 
 patchesStrategicMerge:
 - patch.yaml
