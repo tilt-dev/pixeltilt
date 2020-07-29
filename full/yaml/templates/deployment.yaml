@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  labels:
+    app: {{ .Values.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+        tier: web
+    spec:
+      containers:
+      - name: {{ .Values.name }}
+        image: {{ .Values.name }}
+        ports:
+        - containerPort: 8080
