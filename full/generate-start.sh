@@ -10,7 +10,7 @@ import (
 )
 
 func Benchmark() {
-	start := time.Unix(0, $(date +%s%N))
+	start := time.Unix(0, $(gdate +%s%N))
 	if start.IsZero() {
 		fmt.Println("Couldn't benchmark start time!")
 	}

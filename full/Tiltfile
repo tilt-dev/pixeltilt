@@ -1,10 +1,10 @@
 docker_build(
-  "frontend", 
-  "./frontend", 
+  "frontend",
+  "./frontend",
   live_update=[
     sync('frontend', '/usr/src/app'),
     run('cd /usr/src/app && npm install', trigger=[
-      'frontend/package.json', 
+      'frontend/package.json',
       'frontend/package-lock.json'
       ])
   ]
@@ -27,25 +27,25 @@ def initialize(service_list, starting_port=8080, extra_files=None):
     gofiles = str(local("find ./" + service + " -name *.go | grep -v start.go", quiet=True)).rstrip().split("\n")
 
     docker_build(
-      service, 
-      '.', 
-      dockerfile_contents=local('files="' + ' '.join(files) + '" ./generate-dockerfile.sh', quiet=True), 
-      only=files, 
+      service,
+      '.',
+      dockerfile_contents=local('files="' + ' '.join(files) + '" ./generate-dockerfile.sh', quiet=True),
+      only=files,
       live_update=[sync(service + '/main', '/app/main')]
       )
 
     local_resource(
       'recompile-' + service,
       'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ' + service + '/main -ldflags "-w" ./' + service,
-      deps=['./' + service + '/start.go'],
-      resource_deps=['benchmark-all', 'benchmark-' + service]
+      deps=['./' + service + '/start.go'] + gofiles,
+      # resource_deps=['benchmark-all', 'benchmark-' + service]
       )
 
-    local_resource(
-      'benchmark-' + service,
-      'services="' + service + '" ./generate-start.sh',
-      deps=gofiles
-    )
+    # local_resource(
+    #   'benchmark-' + service,
+    #   'services="' + service + '" ./generate-start.sh',
+    #   deps=gofiles
+    # )
 
     k8s_yaml(local("name=" + service + " ./generate-yaml.sh", quiet=True))
     k8s_resource(service, port_forwards=str(starting_port) + ':8080')
@@ -62,5 +62,7 @@ local_resource(
 
 local_resource(
   'flush database',
-  'curl http://localhost:8083/flush'
+  'curl http://localhost:8083/flush',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
 )
