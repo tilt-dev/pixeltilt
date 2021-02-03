@@ -64,3 +64,20 @@ local_resource(
   'flush database',
   'curl http://localhost:8083/flush'
 )
+
+test("red filter test", "go test ./red -v",
+		deps=["red"],
+		tags=["filters"],
+)
+
+test("glitch filter test", "go test ./glitch -v",
+		tags=["filters"],
+		trigger_mode=TRIGGER_MODE_MANUAL,
+)
+
+sillytests = local("go test -list=Silly ./... | grep '^[T;]'")
+for silly in str(sillytests).splitlines():
+  test(silly[4:] + " test", "go test -v -run " + silly + " ./...",
+  		tags=["silly"],
+      deps=["storage/client"]
+  )
