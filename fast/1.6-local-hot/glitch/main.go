@@ -25,10 +25,10 @@ const glitchExprStr = "b ^ (r | (s : (x # B)))"
 var glitchExpr *glitch.Expression
 
 func main() {
-	called := time.Unix(0, 1586176121169531999)
+	called := time.Unix(0, 1622215145341424128)
 	current := time.Now()
 	elapsed := current.Sub(called)
-	fmt.Print("\nStarting glitch... ")
+	fmt.Print("\nService restarted in... ")
 	fmt.Println(elapsed.Round(time.Millisecond))
 
 	port := "8085"

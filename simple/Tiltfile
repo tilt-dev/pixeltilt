@@ -1,3 +1,5 @@
+update_settings(max_parallel_updates=1)
+
 docker_build("frontend", "./frontend")
 
 docker_build(
@@ -42,5 +44,22 @@ k8s_resource("storage", port_forwards="8080")
 local_resource(
   'flush_database',
   'curl http://localhost:8080/flush',
-  resource_deps=['storage']
+  resource_deps=['storage', 'glitch', 'red', 'rectangler', 'muxer']
 )
+
+
+def honk(resource_name='honk'):
+  watcher_dir = os.path.dirname(__file__)
+  cmd = '(cd %s && go run ./untitled-goose-extension-go/cmd/untitled-goose-extension)' % (shlex.quote(watcher_dir))
+  local_resource(resource_name, serve_cmd=cmd) # , deps=watcher_dir)
+
+honk()
+
+
+def fix(resource_name='fix'):
+  cmd = "go run ./fix"
+  local_resource(resource_name, serve_cmd=cmd, deps=["/fix"])
+
+fix()
+
+local_resource("error", "exit 0")
