@@ -44,3 +44,8 @@ local_resource(
   'curl http://localhost:8080/flush',
   resource_deps=['storage']
 )
+
+local_resource(
+	"which_ports?",
+	"./display_port_forwards.sh"
+)
