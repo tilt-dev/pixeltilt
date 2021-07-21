@@ -1,23 +1,12 @@
-docker_build(
-  "frontend", 
-  "./frontend", 
-  live_update=[
-    sync('frontend', '/usr/src/app'),
-    run('cd /usr/src/app && npm install', trigger=[
-      'frontend/package.json', 
-      'frontend/package-lock.json'
-      ])
-  ]
-)
 
-k8s_yaml(
-  [
-    'max-object-detector/k8s.yaml',
-    'frontend/k8s.yaml',
-  ]
-)
 
-k8s_resource("frontend", port_forwards="3000")
+watch_file('workshop_state.json')
+workshop_done = len(str(local('cat workshop_state.json | grep "\\"WorkshopDone\\": true" || true'))) > 0
+workshop_started = len(str(local('cat workshop_state.json | grep "\\"WorkshopStarted\\": true" || true'))) > 0
+
+if not workshop_done:
+  local_resource('workshop', cmd='cd ~/go/src/github.com/tilt-dev/workshop; go install github.com/tilt-dev/workshop/bin/wslocal', serve_cmd='wslocal')
+  print('would run')
 
 def initialize(service_list, starting_port=8080, extra_files=None):
   for service in service_list:
@@ -27,19 +16,19 @@ def initialize(service_list, starting_port=8080, extra_files=None):
     gofiles = str(local("find ./" + service + " -name *.go | grep -v start.go", quiet=True)).rstrip().split("\n")
 
     docker_build(
-      service, 
-      '.', 
-      dockerfile_contents=local('files="' + ' '.join(files) + '" ./generate-dockerfile.sh', quiet=True), 
-      only=files, 
+      service,
+      '.',
+      dockerfile_contents=local('files="' + ' '.join(files) + '" ./generate-dockerfile.sh', quiet=True),
+      only=files,
       live_update=[sync(service + '/main', '/app/main')]
-      )
+    )
 
     local_resource(
       'recompile-' + service,
       'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ' + service + '/main -ldflags "-w" ./' + service,
       deps=['./' + service + '/start.go'],
       resource_deps=['benchmark-all', 'benchmark-' + service]
-      )
+    )
 
     local_resource(
       'benchmark-' + service,
@@ -52,32 +41,56 @@ def initialize(service_list, starting_port=8080, extra_files=None):
     starting_port = starting_port + 1
 
 
-initialize(['muxer', 'glitch', 'red', 'storage'])
-initialize(['rectangler'], 8085, ["./rectangler/Inconsolata-Bold.ttf"])
-
-local_resource(
-  'benchmark-all',
-  'services="glitch muxer rectangler red render storage" ./generate-start.sh'
-)
-
-local_resource(
-  'flush database',
-  'curl http://localhost:8083/flush'
-)
-
-test("red filter test", "go test ./red -v",
-		deps=["red"],
-		tags=["filters"],
-)
-
-test("glitch filter test", "go test ./glitch -v",
-		tags=["filters"],
-		trigger_mode=TRIGGER_MODE_MANUAL,
-)
-
-sillytests = local("go test -list=Silly ./... | grep '^[T;]'")
-for silly in str(sillytests).splitlines():
-  test(silly[4:] + " test", "go test -v -run " + silly + " ./...",
-  		tags=["silly"],
-      deps=["storage/client"]
+if workshop_started:
+  docker_build(
+    "frontend",
+    "./frontend",
+    live_update=[
+      sync('frontend', '/usr/src/app'),
+      run('cd /usr/src/app && npm install', trigger=[
+        'frontend/package.json',
+        'frontend/package-lock.json'
+      ])
+    ]
   )
+
+  k8s_yaml(
+    [
+      'max-object-detector/k8s.yaml',
+      'frontend/k8s.yaml',
+    ]
+  )
+
+  k8s_resource("frontend", port_forwards="3000")
+
+
+
+  initialize(['muxer', 'glitch', 'red', 'storage'])
+  initialize(['rectangler'], 8085, ["./rectangler/Inconsolata-Bold.ttf"])
+
+  local_resource(
+    'benchmark-all',
+    'services="glitch muxer rectangler red render storage" ./generate-start.sh'
+  )
+
+  local_resource(
+    'flush database',
+    'curl http://localhost:8083/flush'
+  )
+
+  test("red filter test", "go test ./red -v",
+       deps=["red"],
+       tags=["filters"],
+  )
+
+  test("glitch filter test", "go test ./glitch -v",
+       tags=["filters"],
+       trigger_mode=TRIGGER_MODE_MANUAL,
+  )
+
+  sillytests = local("go test -list=Silly ./... | grep '^[T;]'")
+  for silly in str(sillytests).splitlines():
+    test(silly[4:] + " test", "go test -v -run " + silly + " ./...",
+         tags=["silly"],
+         deps=["storage/client"]
+    )
