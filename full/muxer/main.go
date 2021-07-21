@@ -35,7 +35,9 @@ var enabledFilters = []filter{
 var storage client.Storage
 
 func main() {
+
 	Benchmark()
+
 	port := "8080"
 	if len(os.Args) > 1 {
 		port = os.Args[1]
@@ -61,6 +63,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 <html lang="en">
   <head>
     <title>Document</title>
+    <meta name="author" content="workshop">
   </head>
   <body>
     <form
