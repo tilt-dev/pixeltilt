@@ -1,3 +1,5 @@
+# TODO(lizz): Add API version setting before merging in any label changes
+
 docker_build("frontend", "./frontend")
 
 docker_build(
@@ -36,11 +38,19 @@ k8s_yaml([
     'frontend/k8s.yaml',
 ])
 
-k8s_resource("frontend", port_forwards="3000")
-k8s_resource("storage", port_forwards="8080")
+k8s_resource("frontend", port_forwards="3000", labels=["frontend"])
+k8s_resource("storage", port_forwards="8080", labels=["db"])
+k8s_resource("glitch", labels=["service", "go"])
+k8s_resource("red", labels=["service", "go"])
+k8s_resource("rectangler", labels=["service", "go"])
+k8s_resource("storage", labels=["service", "go"])
+k8s_resource("muxer", labels=["service", "go"])
 
 local_resource(
   'flush_database',
   'curl http://localhost:8080/flush',
-  resource_deps=['storage']
+  resource_deps=['storage'],
+  labels=["sh", "db"]
 )
+
+enable_feature("labels")

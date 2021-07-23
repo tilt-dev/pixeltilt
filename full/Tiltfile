@@ -1,3 +1,5 @@
+# TODO(lizz): Add API version setting before merging in any label changes
+
 docker_build(
   "frontend", 
   "./frontend", 
@@ -17,7 +19,7 @@ k8s_yaml(
   ]
 )
 
-k8s_resource("frontend", port_forwards="3000")
+k8s_resource("frontend", port_forwards="3000", labels="frontend")
 
 def initialize(service_list, starting_port=8080, extra_files=None):
   for service in service_list:
@@ -38,17 +40,19 @@ def initialize(service_list, starting_port=8080, extra_files=None):
       'recompile-' + service,
       'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ' + service + '/main -ldflags "-w" ./' + service,
       deps=['./' + service + '/start.go'],
-      resource_deps=['benchmark-all', 'benchmark-' + service]
+      resource_deps=['benchmark-all', 'benchmark-' + service],
+      labels=["compiler", "script"]
       )
 
     local_resource(
       'benchmark-' + service,
       'services="' + service + '" ./generate-start.sh',
-      deps=gofiles
+      deps=gofiles,
+      labels=["benchmark"]
     )
 
     k8s_yaml(local("name=" + service + " ./generate-yaml.sh", quiet=True))
-    k8s_resource(service, port_forwards=str(starting_port) + ':8080')
+    k8s_resource(service, port_forwards=str(starting_port) + ':8080', labels=["service"])
     starting_port = starting_port + 1
 
 
@@ -57,27 +61,34 @@ initialize(['rectangler'], 8085, ["./rectangler/Inconsolata-Bold.ttf"])
 
 local_resource(
   'benchmark-all',
-  'services="glitch muxer rectangler red render storage" ./generate-start.sh'
+  'services="glitch muxer rectangler red render storage" ./generate-start.sh',
+  labels=["script"]
 )
 
 local_resource(
   'flush database',
-  'curl http://localhost:8083/flush'
+  'curl http://localhost:8083/flush',
+  labels=["script", "db"]
 )
 
 test("red filter test", "go test ./red -v",
 		deps=["red"],
 		tags=["filters"],
+    labels=["test"]
 )
 
 test("glitch filter test", "go test ./glitch -v",
 		tags=["filters"],
 		trigger_mode=TRIGGER_MODE_MANUAL,
+    labels=["test"]
 )
 
 sillytests = local("go test -list=Silly ./... | grep '^[T;]'")
 for silly in str(sillytests).splitlines():
   test(silly[4:] + " test", "go test -v -run " + silly + " ./...",
   		tags=["silly"],
-      deps=["storage/client"]
+      deps=["storage/client"],
+      labels=["test"]
   )
+
+enable_feature("labels")
