@@ -2,34 +2,34 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rectangler
+  name: bounding-box
   labels:
-    app: rectangler
+    app: bounding-box
 spec:
   selector:
     matchLabels:
-      app: rectangler
+      app: bounding-box
   template:
     metadata:
       labels:
-        app: rectangler
+        app: bounding-box
     spec:
       containers:
-      - name: rectangler
-        image: rectangler
-        ports:
-        - containerPort: 8080
+        - name: bounding-box
+          image: bounding-box
+          ports:
+            - containerPort: 8080
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: rectangler
+  name: bounding-box
   labels:
-    app: rectangler
+    app: bounding-box
 spec:
   ports:
     - port: 8080
       targetPort: 8080
       protocol: TCP
   selector:
-    app: rectangler
+    app: bounding-box

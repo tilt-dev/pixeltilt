@@ -27,9 +27,9 @@ type filter struct {
 
 // Order matters!!
 var enabledFilters = []filter{
-	filter{"Red", "http://red:8080", false},
+	filter{"Color", "http://color:8080", false},
 	filter{"Glitch", "http://glitch:8080", false},
-	filter{"Rectangler", "http://rectangler:8080", true},
+	filter{"Bounding Box", "http://bounding-box:8080", true},
 }
 
 var storage client.Storage

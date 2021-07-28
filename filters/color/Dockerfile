@@ -1,7 +1,7 @@
-FROM base
+FROM pixeltilt-base
 
-COPY render/api/ render/api/
-COPY red/ red/
+COPY ../../render/api render/api/
+COPY filters/color/ red/
 
 RUN --mount=type=cache,target=/cache/gomod \
     --mount=type=cache,target=/cache/gobuild,sharing=locked \

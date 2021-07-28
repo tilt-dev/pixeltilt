@@ -1,11 +1,11 @@
 import styled from "styled-components";
-import { ReactComponent as PixelTiltLogoSvg } from "./pixel-tilt-logo.svg";
-import { ReactComponent as TiltLogoSvg } from "./tilt-logo.svg";
-import { ReactComponent as DropSvg } from "./drop.svg";
-import { ReactComponent as MixerSvg } from "./mixer.svg";
-import { ReactComponent as ScanSvg } from "./scan.svg";
-import { ReactComponent as ResetSvg } from "./reset.svg";
-import { ReactComponent as ApplySvg } from "./apply.svg";
+import {ReactComponent as PixelTiltLogoSvg} from "./pixel-tilt-logo.svg";
+import {ReactComponent as TiltLogoSvg} from "./tilt-logo.svg";
+import {ReactComponent as DropSvg} from "./drop.svg";
+import {ReactComponent as MixerSvg} from "./mixer.svg";
+import {ReactComponent as ScanSvg} from "./scan.svg";
+import {ReactComponent as ResetSvg} from "./reset.svg";
+import {ReactComponent as ApplySvg} from "./apply.svg";
 import Button from "./Button";
 import color from "./color";
 
@@ -105,22 +105,21 @@ const Header = props => {
     let selected = checkedItems[name];
     let label = item.label;
     let svg = null;
-    if (item.label == "Red") {
-      label = "Color";
-      svg = <DropSvg />;
-    } else if (item.label == "Glitch") {
-      svg = <MixerSvg />;
-    } else if (item.label == "Rectangler") {
+    if (item.label === "Color") {
+      svg = <DropSvg/>;
+    } else if (item.label === "Glitch") {
+      svg = <MixerSvg/>;
+    } else if (item.label === "Bounding Box") {
       label = "Object";
-      svg = <ScanSvg />;
+      svg = <ScanSvg/>;
     }
     return (
-      <Button
-        onClick={handleChangeFilter}
-        name={name}
-        key={name}
-        selected={selected}
-        isToggle={true}
+        <Button
+            onClick={handleChangeFilter}
+            name={name}
+            key={name}
+            selected={selected}
+            isToggle={true}
         disabled={!hasFileSelection}
       >
         {svg}

@@ -1,4 +1,4 @@
-FROM base
+FROM pixeltilt-base
 
 COPY storage/ storage/
 

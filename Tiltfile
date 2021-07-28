@@ -14,12 +14,12 @@ load('ext://uibutton', 'cmd_button')
 # and will inject any images referenced in the Tiltfile when deploying
 # https://docs.tilt.dev/api.html#api.k8s_yaml
 k8s_yaml([
-    'glitch/k8s.yaml',
-    'red/k8s.yaml',
-    'rectangler/k8s.yaml',
+    'filters/glitch/k8s.yaml',
+    'filters/color/k8s.yaml',
+    'filters/bounding-box/k8s.yaml',
     'storage/k8s.yaml',
     'muxer/k8s.yaml',
-    'max-object-detector/k8s.yaml',
+    'object-detector/k8s.yaml',
     'frontend/k8s.yaml',
 ])
 
@@ -27,10 +27,10 @@ k8s_yaml([
 # https://docs.tilt.dev/api.html#api.k8s_resource
 k8s_resource("frontend", port_forwards="3000", labels=["frontend"])
 k8s_resource("storage", port_forwards="8080", labels=["infra"])
-k8s_resource("max-object-detector", labels=["infra"])
+k8s_resource("max-object-detector", labels=["infra"], new_name="object-detector")
 k8s_resource("glitch", labels=["backend"])
-k8s_resource("red", labels=["backend"])
-k8s_resource("rectangler", labels=["backend"])
+k8s_resource("color", labels=["backend"])
+k8s_resource("bounding-box", labels=["backend"])
 k8s_resource("storage", labels=["backend"])
 k8s_resource("muxer", labels=["backend"])
 
@@ -61,7 +61,7 @@ docker_build(
 # dependencies numerous times - `only` is used to prevent unnecessary rebuilds
 # https://docs.tilt.dev/api.html#api.docker_build
 docker_build(
-    "base",
+    "pixeltilt-base",
     context=".",
     dockerfile="base.dockerfile",
     only=['go.mod', 'go.sum']
@@ -75,11 +75,11 @@ docker_build(
 docker_build_with_restart(
     "glitch",
     context=".",
-    dockerfile="glitch.dockerfile",
-    only=['glitch', 'render/api'],
+    dockerfile="filters/glitch/Dockerfile",
+    only=['filters/glitch', 'render/api'],
     entrypoint='/usr/local/bin/glitch',
     live_update=[
-        sync('glitch', '/app/glitch'),
+        sync('filters/glitch', '/app/glitch'),
         sync('render/api', '/app/render/api'),
         run('go build -mod=vendor -o /usr/local/bin/glitch ./glitch')
     ]
@@ -92,31 +92,28 @@ docker_build_with_restart(
 docker_build(
     "muxer",
     context=".",
-    dockerfile="muxer.dockerfile",
-    only=['muxer', 'render/api', 'storage/api', 'storage/client'],
-    entrypoint='/usr/local/bin/muxer'
+    dockerfile="muxer/Dockerfile",
+    only=['muxer', 'render/api', 'storage/api', 'storage/client']
 )
 
 docker_build(
-    "red",
+    "color",
     context=".",
-    dockerfile="red.dockerfile",
-    only=['red', 'render/api'],
-    entrypoint='/usr/local/bin/red'
+    dockerfile="filters/color/Dockerfile",
+    only=['filters/color', 'render/api']
 )
 
 docker_build(
-    "rectangler",
+    "bounding-box",
     context=".",
-    dockerfile="rectangler.dockerfile",
-    only=['rectangler', 'render/api'],
-    entrypoint='/usr/local/bin/rectangler'
+    dockerfile="filters/bounding-box/Dockerfile",
+    only=['filters/bounding-box', 'render/api']
 )
 
 docker_build(
     "storage",
     context=".",
-    dockerfile="storage.dockerfile",
+    dockerfile="storage/Dockerfile",
     only=['storage'],
     entrypoint='/usr/local/bin/storage'
 )

@@ -2,34 +2,34 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: red
+  name: color
   labels:
-    app: red
+    app: color
 spec:
   selector:
     matchLabels:
-      app: red
+      app: color
   template:
     metadata:
       labels:
-        app: red
+        app: color
     spec:
       containers:
-      - name: red
-        image: red
-        ports:
-        - containerPort: 8080
+        - name: color
+          image: color
+          ports:
+            - containerPort: 8080
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: red
+  name: color
   labels:
-    app: red
+    app: color
 spec:
   ports:
     - port: 8080
       targetPort: 8080
       protocol: TCP
   selector:
-    app: red
+    app: color

@@ -1,8 +1,8 @@
-FROM base
+FROM pixeltilt-base
 
-COPY render/api/ render/api/
-COPY storage/api/ storage/api/
-COPY storage/client/ storage/client/
+COPY ../render/api render/api/
+COPY ../storage/api storage/api/
+COPY ../storage/client storage/client/
 COPY muxer/ muxer/
 
 RUN --mount=type=cache,target=/cache/gomod \
