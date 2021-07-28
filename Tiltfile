@@ -31,7 +31,6 @@ k8s_resource("max-object-detector", labels=["infra"], new_name="object-detector"
 k8s_resource("glitch", labels=["backend"])
 k8s_resource("color", labels=["backend"])
 k8s_resource("bounding-box", labels=["backend"])
-k8s_resource("storage", labels=["backend"])
 k8s_resource("muxer", labels=["backend"])
 
 # cmd_button extension adds custom buttons to a resource to execute tasks on demand
@@ -39,7 +38,7 @@ k8s_resource("muxer", labels=["backend"])
 cmd_button(
     name='flush-storage',
     resource='storage',
-    argv=['curl', 'http://localhost:8080/flush'],
+    argv=['curl', '-s', 'http://localhost:8080/flush'],
     text='Flush DB',
     icon_name='delete'
 )

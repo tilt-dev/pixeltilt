@@ -4,11 +4,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -122,14 +120,15 @@ func list(w http.ResponseWriter, r *http.Request) {
 }
 
 func flush(w http.ResponseWriter, r *http.Request) {
-	dir, err := ioutil.ReadDir("/app/diskv")
-	if err != nil {
+	dir, err := os.ReadDir("/app/diskv")
+	if err == nil {
+		for _, d := range dir {
+			_ = os.RemoveAll(filepath.Join("diskv", d.Name()))
+		}
+	} else if !os.IsNotExist(err) {
 		http.Error(w, fmt.Sprintf("error reading diskv directory: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	for _, d := range dir {
-		os.RemoveAll(path.Join([]string{"diskv", d.Name()}...))
-	}
-	w.Write([]byte("Flushed!\n"))
+	_, _ = w.Write([]byte("Flushed!\n"))
 }
