@@ -1,0 +1,35 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bounding-box
+  labels:
+    app: bounding-box
+spec:
+  selector:
+    matchLabels:
+      app: bounding-box
+  template:
+    metadata:
+      labels:
+        app: bounding-box
+    spec:
+      containers:
+        - name: bounding-box
+          image: bounding-box
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bounding-box
+  labels:
+    app: bounding-box
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: bounding-box
