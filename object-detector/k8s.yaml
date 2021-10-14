@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: max-object-detector
-        image: codait/max-object-detector
+        image: codait/max-object-detector:arm-arm32v7-latest
         ports:
         - containerPort: 5000
         resources:
