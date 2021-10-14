@@ -130,5 +130,5 @@ func flush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = w.Write([]byte("Flushed!\n"))
+	_, _ = w.Write([]byte("Database entries deleted!\n"))
 }
