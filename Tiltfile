@@ -2,8 +2,6 @@
 # https://docs.tilt.dev/api.html#api.version_settings
 version_settings(constraint='>=0.22.1')
 
-enable_feature("labels")
-
 # load() can be used to split your Tiltfile logic across multiple files
 # the special ext:// prefix loads the corresponding extension from
 # https://github.com/tilt-dev/tilt-extensions instead of a local file
