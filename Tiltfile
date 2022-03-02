@@ -257,10 +257,11 @@ def syncback(name, k8s_object, src_dir, ignore=None, delete=False, paths=None, t
     if resource_deps:
         extra_args["resource_deps"] = resource_deps
 
+    print(command)
     local_resource(name, command, trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False, **extra_args)
 
 
 syncback('syncback-js', 'deploy/frontend',
-        '/usr/src/app/', ignore=['node_modules/'],
+        '/usr/src/app/', paths=['package.json', 'package-lock.json'],
         target_dir='./frontend-copy',
 )
